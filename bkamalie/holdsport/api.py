@@ -2,10 +2,7 @@ import requests
 from datetime import date, datetime, timedelta
 from pydantic import BaseModel
 from enum import StrEnum, Enum
-# Replace with your actual API key and club ID
-USERNAME = 'mvestergaard96@gmail.com'
-PASSWORD = 'tym45tse'
-CLUB_ID = 'your_club_id_here'
+
 MENS_TEAM_ID = 5289
 FINEBOX_ADMIN_MEMBER_ID = 1053833
 

@@ -1,6 +1,6 @@
-from app.utils import login, render_page_links
+from bkamalie.app.utils import login, render_page_links
 import streamlit as st
-from holdsport.api import get_current_week_activities, get_teams, PlayerStatus, get_connection
+from bkamalie.holdsport.api import get_current_week_activities, get_teams, PlayerStatus, get_connection
 
 from datetime import date
 import polars as pl

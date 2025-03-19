@@ -1,8 +1,7 @@
-from database.model import Payment
+from bkamalie.database.model import Payment
 import polars as pl
 from psycopg2.extras import execute_values
 import psycopg2
-from holdsport.api import FINEBOX_ADMIN_MEMBER_ID
 
 create_tables_sql = """
 -- Enum types for FineStatus and FineCategory
