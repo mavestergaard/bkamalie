@@ -1,7 +1,7 @@
 import base64
 import polars as pl
 import streamlit as st
-from holdsport.api import verify_user
+from bkamalie.holdsport.api import verify_user
 
 fines_overview_show_cols = [
     pl.col("name_member").alias("Navn"),
@@ -28,7 +28,7 @@ def render_page_links()->None:
     if "localhost" in headers.get("Host"):
         st.session_state.logged_in = True
         st.session_state.current_user_id = 1412409
-    st.image("graphics/bka_logo.png")
+    st.image("bkamalie/graphics/bka_logo.png")
     col1, col2, col3 = st.columns(3, border=True)
     col1.page_link("dashboard.py", label="Holdsport Dashboard", icon="⚽")
     col2.page_link("boedekasse.py", label="Bødekasse", icon="💰")

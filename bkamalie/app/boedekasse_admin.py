@@ -1,11 +1,11 @@
-from database.execute import insert_payment, upsert_recorded_fines
-from database.model import FineStatus, Payment, RecordedFine
+from bkamalie.database.execute import insert_payment, upsert_recorded_fines
+from bkamalie.database.model import FineStatus, Payment, RecordedFine
 import streamlit as st
-from holdsport.api import FINEBOX_ADMIN_MEMBER_ID, get_members, get_connection as get_holdsport_connection
+from bkamalie.holdsport.api import FINEBOX_ADMIN_MEMBER_ID, get_members, get_connection as get_holdsport_connection
 from datetime import datetime, date
 import polars as pl
-from app.utils import login, render_page_links, fines_overview_detail_cols, fines_overview_show_cols
-from database.utils import get_connection as get_db_connection
+from bkamalie.app.utils import login, render_page_links, fines_overview_detail_cols, fines_overview_show_cols
+from bkamalie.database.utils import get_connection as get_db_connection
 
 render_page_links()
 

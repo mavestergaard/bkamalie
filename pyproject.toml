@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "BK-Amalie"
+name = "BKAmalie"
 version = "0.1.0"
 description = "A simple project with an app, api, and tests."
 authors = [
@@ -38,7 +38,7 @@ python = "3.12"
 installer = "uv"
 
 [tool.hatch.envs.default.scripts]
-app = "python -m streamlit run app/bka_app.py"
+app = "python -m streamlit run bkamalie/app/bka_app.py"
 
 [tool.hatch.envs.test]
 python = "3.12"
