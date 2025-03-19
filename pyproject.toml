@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "BK-Amalie"
+version = "0.1.0"
+description = "A simple project with an app, api, and tests."
+authors = [
+    { name="Mikkel Annesen Vestergaard", email="mvestergaard96@gmail.com" },
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.13"
+classifiers = [
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests",
+    "pydantic",
+    "streamlit",
+    "polars[sqlalchemy]",
+    "connectorx",
+    "plotly",
+    "psycopg2-binary",
+    "millify",
+]
+
+[tool.hatch.build]
+include = [
+  "bkamalie/app/*.py",
+]
+
+[tool.hatch.envs.default]
+python = "3.13"
+installer = "uv"
+
+[tool.hatch.envs.default.scripts]
+app = "python -m streamlit run app/bka_app.py"
+
+[tool.hatch.envs.test]
+python = "3.13"
+extra-dependencies = [
+  "pytest",
+]
+
+[tool.hatch.envs.test.scripts]
+base = "pytest {args}"
