@@ -11,9 +11,9 @@ authors = [
 ]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 classifiers = [
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
@@ -34,14 +34,14 @@ include = [
 ]
 
 [tool.hatch.envs.default]
-python = "3.13"
+python = "3.12"
 installer = "uv"
 
 [tool.hatch.envs.default.scripts]
 app = "python -m streamlit run app/bka_app.py"
 
 [tool.hatch.envs.test]
-python = "3.13"
+python = "3.12"
 extra-dependencies = [
   "pytest",
 ]
