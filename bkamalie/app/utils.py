@@ -21,7 +21,6 @@ fines_overview_detail_cols = [
     pl.col("holdbox_count").alias("Holdboxe Antal"),
 ]
 
-
 def render_page_links()->None:
     """Call this as the first function in every app script"""
     headers = st.context.headers
@@ -59,3 +58,6 @@ def login() -> None:
         
         st.rerun()
     
+
+def replace_id_with_name(col_name:str, alias:str, df_members: pl.DataFrame) -> pl.Expr:
+    return pl.col(col_name).replace_strict(old=df_members["id"], new=df_members["name"]).alias(alias)

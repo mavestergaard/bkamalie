@@ -4,7 +4,7 @@ import streamlit as st
 from bkamalie.holdsport.api import MENS_TEAM_ID, FINEBOX_ADMIN_MEMBER_ID, get_members, get_connection as get_holdsport_connection
 from datetime import date, datetime
 import polars as pl
-from bkamalie.app.utils import fines_overview_show_cols, login, render_page_links, fines_overview_detail_cols
+from bkamalie.app.utils import fines_overview_show_cols, login, render_page_links, fines_overview_detail_cols, replace_id_with_name
 from bkamalie.database.utils import get_connection as get_db_connection
 import plotly.express as px
 from millify import millify
@@ -96,7 +96,7 @@ if st.button("Tip Bødekassemesteren", type="primary"):
 
 st.subheader("Udstedte bøder", divider=True)
 show_details = st.toggle("Show Details", False)
-extra_cols = fines_overview_detail_cols if show_details else []
+extra_cols = fines_overview_detail_cols + [replace_id_with_name("created_by_member_id", "Oprettet af", df_members).alias("Oprettet Af")] if show_details else []
 st.dataframe(df_fine_overview.select(fines_overview_show_cols + extra_cols).sort("Bøde Dato", descending=True), use_container_width=True)
 
 df_accepted_fines = df_fine_overview.filter(fine_status="Accepted")
@@ -110,7 +110,7 @@ df_fines_stikkerlinjen = df_fines_stikkerlinjen.join(df_members, left_on="create
 
 st.subheader("Fines Leaderboard", divider=True)
 
-fig = px.bar(df_fines_leaderboard, x='Navn', y='Bødesum', title='Bødesum Leaderboard')
+fig = px.bar(df_fines_leaderboard, x='Navn', y='Bødesum', title='Bødesum Leaderboard', color_discrete_sequence=["#560E29"])
 st.plotly_chart(fig)
 
 st.dataframe(df_fines_leaderboard,column_config={
@@ -129,7 +129,7 @@ st.dataframe(df_fines_leaderboard,column_config={
 
 st.subheader("Fines Popularity", divider=True)
 
-fig = px.bar(df_fines_popularity, x='Bøde', y='Bødesum', title='Bødesum Leaderboard')
+fig = px.bar(df_fines_popularity, x='Bøde', y='Bødesum', title='Bødesum Leaderboard', color_discrete_sequence=["#560E29"])
 st.plotly_chart(fig)
 
 st.dataframe(df_fines_popularity,column_config={
@@ -157,7 +157,7 @@ with st.expander("Bøder Afvist"):
     st.dataframe(df_recorded_fines.filter(fine_status="Declined"))
 
 
-fig = px.bar(df_fines_stikkerlinjen, x='Navn', y='Bødesum', title='Klubbens Bedste Stikkere')
+fig = px.bar(df_fines_stikkerlinjen, x='Navn', y='Bødesum', title='Klubbens Bedste Stikkere', color_discrete_sequence=["#560E29"])
 st.plotly_chart(fig)
 
 st.dataframe(df_fines_stikkerlinjen,column_config={
