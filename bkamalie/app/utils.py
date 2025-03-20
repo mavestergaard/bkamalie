@@ -21,7 +21,7 @@ fines_overview_detail_cols = [
     pl.col("holdbox_count").alias("Holdboxe Antal"),
 ]
 
-def render_page_links()->None:
+def render_page_links(df_members:pl.DataFrame)->None:
     """Call this as the first function in every app script"""
     headers = st.context.headers
     if "localhost" in headers.get("Host"):
@@ -35,9 +35,11 @@ def render_page_links()->None:
     if "logged_in" not in st.session_state:
         st.warning("Please login to proceed")
         st.session_state.logged_in = False
+        st.session_state.current_user_id = None
     else:
         if st.session_state.logged_in:
-            st.info(f"Logged in as {st.session_state.current_user_id}")
+            member_name = df_members.filter(pl.col("id")==st.session_state.current_user_id)["name"].item()
+            st.info(f"Logged in as: {member_name} ({st.session_state.current_user_id})")
         else:
             st.warning("Please login to proceed")
         
