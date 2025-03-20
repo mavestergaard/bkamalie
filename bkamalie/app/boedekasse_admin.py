@@ -7,14 +7,17 @@ import polars as pl
 from bkamalie.app.utils import login, render_page_links, fines_overview_detail_cols, fines_overview_show_cols
 from bkamalie.database.utils import get_connection as get_db_connection
 
-render_page_links()
+holdsport_con = get_holdsport_connection(st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"])
+members = [{"id":member.id, "name":member.name, "role":member.role.to_string()} for member in get_members(holdsport_con, 5289)]
+df_members = pl.DataFrame(members)
+render_page_links(df_members)
 
 if st.button("Login", type="primary"):
     login()
 
 st.title("Bødekassen Admin")
 
-if (not st.session_state.logged_in) & (st.session_state.current_user_id in [FINEBOX_ADMIN_MEMBER_ID, 1412409]):
+if (not st.session_state.logged_in) & (st.session_state.current_user_id not in [FINEBOX_ADMIN_MEMBER_ID, 1412409]):
     st.stop()
 
 
