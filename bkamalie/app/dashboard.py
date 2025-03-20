@@ -1,11 +1,14 @@
 from bkamalie.app.utils import login, render_page_links
 import streamlit as st
-from bkamalie.holdsport.api import get_current_week_activities, get_teams, PlayerStatus, get_connection
+from bkamalie.holdsport.api import get_current_week_activities, get_members, get_teams, PlayerStatus, get_connection as get_holdsport_connection
 
 from datetime import date
 import polars as pl
 
-render_page_links()
+holdsport_con = get_holdsport_connection(st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"])
+members = [{"id":member.id, "name":member.name, "role":member.role.to_string()} for member in get_members(holdsport_con, 5289)]
+df_members = pl.DataFrame(members)
+render_page_links(df_members)
 
 if st.button("Login", type="primary"):
     login()
@@ -17,7 +20,6 @@ if not st.session_state.logged_in:
 
 
 
-holdsport_con = get_connection(st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"])
 current_week_activities = get_current_week_activities(holdsport_con, 5289)
 
 cols = st.columns(len(current_week_activities), gap="small", vertical_alignment="top", border=True)
