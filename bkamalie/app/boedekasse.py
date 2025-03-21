@@ -4,13 +4,16 @@ import streamlit as st
 from bkamalie.holdsport.api import MENS_TEAM_ID, FINEBOX_ADMIN_MEMBER_ID, get_members, get_connection as get_holdsport_connection
 from datetime import date, datetime
 import polars as pl
-from bkamalie.app.utils import fines_overview_show_cols, login, render_page_links, fines_overview_detail_cols, replace_id_with_name
+from bkamalie.app.utils import fines_overview_show_cols, get_fines, login, render_page_links, fines_overview_detail_cols, replace_id_with_name
 from bkamalie.database.utils import get_connection as get_db_connection
 import plotly.express as px
 from millify import millify
 
 
-render_page_links()
+holdsport_con = get_holdsport_connection(st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"])
+members = [{"id":member.id, "name":member.name, "role":member.role.to_string()} for member in get_members(holdsport_con, 5289)]
+df_members = pl.DataFrame(members)
+render_page_links(df_members)
 
 if st.button("Login", type="primary"):
     login()
@@ -22,12 +25,13 @@ if not st.session_state.logged_in:
 
 db_config = st.secrets["db"]
 db_con = get_db_connection(db_config)
-df_fines = pl.read_database_uri(query="SELECT * FROM fine", uri=db_con)
-df_recorded_fines = pl.read_database_uri(query="SELECT * FROM recorded_fines", uri=db_con)
-df_payments = pl.read_database_uri(query="SELECT * FROM payment", uri=db_con)
-holdsport_con = get_holdsport_connection(st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"])
-members = [{"id":member.id, "name":member.name, "role":member.role.to_string()} for member in get_members(holdsport_con, MENS_TEAM_ID)]
-df_members = pl.DataFrame(members)
+with st.spinner("Loading data...", show_time=True):
+    df_fines = get_fines(db_con)
+    df_recorded_fines = pl.read_database_uri(query="SELECT * FROM recorded_fines", uri=db_con)
+    df_payments = pl.read_database_uri(query="SELECT * FROM payment", uri=db_con)
+    holdsport_con = get_holdsport_connection(st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"])
+    members = [{"id":member.id, "name":member.name, "role":member.role.to_string()} for member in get_members(holdsport_con, MENS_TEAM_ID)]
+    df_members = pl.DataFrame(members)
 
 
 # df_fines_issued = pl.read_csv('database/fines_issued.csv')

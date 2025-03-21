@@ -4,17 +4,20 @@ import streamlit as st
 from bkamalie.holdsport.api import FINEBOX_ADMIN_MEMBER_ID, get_members, get_connection as get_holdsport_connection
 from datetime import datetime, date
 import polars as pl
-from bkamalie.app.utils import login, render_page_links, fines_overview_detail_cols, fines_overview_show_cols
+from bkamalie.app.utils import get_fines, login, render_page_links, fines_overview_detail_cols, fines_overview_show_cols
 from bkamalie.database.utils import get_connection as get_db_connection
 
-render_page_links()
+holdsport_con = get_holdsport_connection(st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"])
+members = [{"id":member.id, "name":member.name, "role":member.role.to_string()} for member in get_members(holdsport_con, 5289)]
+df_members = pl.DataFrame(members)
+render_page_links(df_members)
 
 if st.button("Login", type="primary"):
     login()
 
 st.title("Bødekassen Admin")
 
-if (not st.session_state.logged_in) & (st.session_state.current_user_id in [FINEBOX_ADMIN_MEMBER_ID, 1412409]):
+if (not st.session_state.logged_in) & (st.session_state.current_user_id not in [FINEBOX_ADMIN_MEMBER_ID, 1412409]):
     st.stop()
 
 
@@ -23,10 +26,10 @@ db_con = get_db_connection(st.secrets["db"])
 
 members = [{"id":member.id, "name":member.name, "role":member.role.to_string()} for member in get_members(holdsport_con, 5289)]
 df_members = pl.DataFrame(members)
-
-df_fines = pl.read_database_uri(query="SELECT * FROM fine", uri=db_con)
-df_recorded_fines = pl.read_database_uri(query="SELECT * FROM recorded_fines", uri=db_con)
-df_payments = pl.read_database_uri(query="SELECT * FROM payment", uri=db_con)
+with st.spinner("Loading data...", show_time=True):
+    df_fines = get_fines(db_con)
+    df_recorded_fines = pl.read_database_uri(query="SELECT * FROM recorded_fines", uri=db_con)
+    df_payments = pl.read_database_uri(query="SELECT * FROM payment", uri=db_con)
 
 df_fine_overview = df_recorded_fines.join(df_fines, left_on="fine_id", right_on="id", how='left').join(df_members, left_on="fined_member_id", right_on="id", how='left', suffix="_member").with_columns(
     (pl.col("fixed_amount") * pl.col("fixed_count") + pl.col("variable_amount") * pl.col("variable_count")).alias("total_fine"),
