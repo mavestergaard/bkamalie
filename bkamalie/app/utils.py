@@ -41,7 +41,7 @@ def render_page_links(df_members:pl.DataFrame)->None:
             member_name = df_members.filter(pl.col("id")==st.session_state.current_user_id)["name"].item()
             st.info(f"Logged in as: {member_name} ({st.session_state.current_user_id})")
         else:
-            st.warning("Please login to proceed")
+            st.warning("Please login to proceed. Use your Holdsport credentials when signing in.")
         
         
 @st.dialog("Login")
@@ -63,3 +63,7 @@ def login() -> None:
 
 def replace_id_with_name(col_name:str, alias:str, df_members: pl.DataFrame) -> pl.Expr:
     return pl.col(col_name).replace_strict(old=df_members["id"], new=df_members["name"]).alias(alias)
+
+@st.cache_data(ttl=300)
+def get_fines(db_con:str)->pl.DataFrame:
+    return pl.read_database_uri(query="SELECT * FROM fine", uri=db_con)
