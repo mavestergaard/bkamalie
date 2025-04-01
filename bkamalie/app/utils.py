@@ -1,4 +1,6 @@
-import base64
+from datetime import date, datetime
+from bkamalie.database.execute import insert_recorded_fines
+from bkamalie.database.model import FineStatus, RecordedFine
 import polars as pl
 import streamlit as st
 from bkamalie.holdsport.api import verify_user
@@ -21,29 +23,42 @@ fines_overview_detail_cols = [
     pl.col("holdbox_count").alias("Holdboxe Antal"),
 ]
 
-def render_page_links(df_members:pl.DataFrame)->None:
+
+def render_page_links(df_members: pl.DataFrame) -> None:
     """Call this as the first function in every app script"""
     headers = st.context.headers
     if "localhost" in headers.get("Host"):
         st.session_state.logged_in = True
         st.session_state.current_user_id = 1412409
     st.image("bkamalie/graphics/bka_logo.png")
-    col1, col2, col3 = st.columns(3, border=True)
-    col1.page_link("dashboard.py", label="Holdsport Dashboard", icon="⚽")
-    col2.page_link("boedekasse.py", label="Bødekasse", icon="💰")
-    col3.page_link("boedekasse_admin.py", label="Bødekasse Admin", icon="👮‍♂️")
+    col1, col2, col3, col4, col5 = st.columns(5, border=True)
+    col1.page_link("stikkerlinjen.py", label="Stikkerlinjen", icon="🕵️‍♂️")
+    col2.page_link(
+        "boedekasse.py",
+        label="Bødekasse",
+        icon="💰",
+    )
+    col3.page_link("boeder.py", label="Bøder", icon="📜")
+    col4.page_link(
+        "boedekasse_admin.py", label="Admin", icon="👮‍♂️", use_container_width=True
+    )
+    col5.page_link("dashboard.py", label="Holdsport", icon="⚽")
     if "logged_in" not in st.session_state:
         st.warning("Please login to proceed")
         st.session_state.logged_in = False
         st.session_state.current_user_id = None
     else:
         if st.session_state.logged_in:
-            member_name = df_members.filter(pl.col("id")==st.session_state.current_user_id)["name"].item()
+            member_name = df_members.filter(
+                pl.col("id") == st.session_state.current_user_id
+            )["name"].item()
             st.info(f"Logged in as: {member_name} ({st.session_state.current_user_id})")
         else:
-            st.warning("Please login to proceed. Use your Holdsport credentials when signing in.")
-        
-        
+            st.warning(
+                "Please login to proceed. Use your Holdsport credentials when signing in."
+            )
+
+
 @st.dialog("Login")
 def login() -> None:
     st.info("Please login using your Holdsport credentials")
@@ -57,13 +72,65 @@ def login() -> None:
             st.session_state.current_user_id = current_user_id
         else:
             st.error("Login failed")
-        
-        st.rerun()
-    
 
-def replace_id_with_name(col_name:str, alias:str, df_members: pl.DataFrame) -> pl.Expr:
-    return pl.col(col_name).replace_strict(old=df_members["id"], new=df_members["name"]).alias(alias)
+        st.rerun()
+
+
+def replace_id_with_name(
+    col_name: str, alias: str, df_members: pl.DataFrame
+) -> pl.Expr:
+    return (
+        pl.col(col_name)
+        .replace_strict(old=df_members["id"], new=df_members["name"])
+        .alias(alias)
+    )
+
 
 @st.cache_data(ttl=300)
-def get_fines(db_con:str)->pl.DataFrame:
+def get_fines(db_con: str) -> pl.DataFrame:
     return pl.read_database_uri(query="SELECT * FROM fine", uri=db_con)
+
+
+def _suggest_fines(
+    db_con: str,
+    members: list[str],
+    selected_fine: str,
+    df_fines: pl.DataFrame,
+    count_fixed: int,
+    count_variable: int,
+    count_holdbox: int,
+    df_members: pl.DataFrame,
+    suggested_by_user_id: int,
+    comment: str,
+) -> None:
+    df_selected_fine = df_fines.filter(name=selected_fine[0])
+    fine_id = df_selected_fine["id"][0]
+    fixed_amount = df_selected_fine["fixed_amount"][0]
+    variable_amount = df_selected_fine["variable_amount"][0]
+    total_fine_amount = count_fixed * fixed_amount + count_variable * variable_amount
+    member_ids = [df_members.filter(name=member)["id"][0] for member in members]
+    updated_at = datetime.now()
+    df_recorded_fines = pl.DataFrame(
+        [
+            RecordedFine(
+                id=None,
+                fine_id=fine_id,
+                fixed_count=count_fixed,
+                variable_count=count_variable,
+                holdbox_count=count_holdbox,
+                fined_member_id=member_id,
+                fine_date=date.today(),
+                created_by_member_id=suggested_by_user_id,
+                fine_status=FineStatus.PENDING,
+                updated_at=updated_at,
+                updated_by_member_id=suggested_by_user_id,
+                total_fine=total_fine_amount,
+                comment=comment,
+            )
+            for member_id in member_ids
+        ]
+    )
+    try:
+        insert_recorded_fines(db_con, df_recorded_fines)
+    except Exception as e:
+        raise e

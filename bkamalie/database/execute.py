@@ -45,9 +45,11 @@ CREATE TABLE IF NOT EXISTS recorded_fines (
     updated_at TIMESTAMP NOT NULL,
     updated_by_member_id INTEGER NOT NULL,
     total_fine INTEGER NOT NULL,
+    comment TEXT,
     CONSTRAINT fk_fine FOREIGN KEY (fine_id) REFERENCES fine(id)
 );
 """
+
 
 def execute_query(con: str, query: str) -> bool:
     with psycopg2.connect(con) as conn:
@@ -56,15 +58,20 @@ def execute_query(con: str, query: str) -> bool:
             conn.commit()
 
 
-def create_tables(con:str)-> None:
+def create_tables(con: str) -> None:
     execute_query(con, create_tables_sql)
 
 
-def insert_payment(con:str, payment: Payment)-> None:
-    execute_query(con, "INSERT INTO payment (member_id, amount, payment_date) VALUES (%s, %s, %s)", (payment.member_id, payment.amount, payment.payment_date))
+def insert_payment(con: str, payment: Payment) -> None:
+    execute_query(
+        con,
+        "INSERT INTO payment (member_id, amount, payment_date) VALUES (%s, %s, %s)",
+        (payment.member_id, payment.amount, payment.payment_date),
+    )
+
 
 def insert_fines(con: str, df: pl.DataFrame) -> None:
-    query = f"""
+    query = """
         INSERT INTO fine (name, fixed_amount, variable_amount, holdbox_amount, description, category)
         VALUES %s;
     """
@@ -72,11 +79,12 @@ def insert_fines(con: str, df: pl.DataFrame) -> None:
         with conn.cursor() as cursor:
             execute_values(cursor, query, df.rows())
 
+
 def insert_recorded_fines(con: str, df: pl.DataFrame) -> None:
     if "id" in df.columns:
         df = df.drop("id")
     query = """
-        INSERT INTO recorded_fines (fine_id, fixed_count, variable_count, holdbox_count, fined_member_id, fine_date, created_by_member_id, fine_status, updated_at, updated_by_member_id, total_fine)
+        INSERT INTO recorded_fines (fine_id, fixed_count, variable_count, holdbox_count, fined_member_id, fine_date, created_by_member_id, fine_status, updated_at, updated_by_member_id, total_fine, comment)
         VALUES %s
     """
     with psycopg2.connect(con) as conn:
@@ -86,7 +94,7 @@ def insert_recorded_fines(con: str, df: pl.DataFrame) -> None:
 
 def upsert_recorded_fines(con: str, df: pl.DataFrame) -> None:
     query = """
-        INSERT INTO recorded_fines (id, fine_id, fixed_count, variable_count, holdbox_count, fined_member_id, fine_date, created_by_member_id, fine_status, updated_at, updated_by_member_id, total_fine)
+        INSERT INTO recorded_fines (id, fine_id, fixed_count, variable_count, holdbox_count, fined_member_id, fine_date, created_by_member_id, fine_status, updated_at, updated_by_member_id, total_fine, comment)
         VALUES %s
         ON CONFLICT (id) DO UPDATE
             SET fine_status  = excluded.fine_status,

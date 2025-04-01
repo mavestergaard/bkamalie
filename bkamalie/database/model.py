@@ -2,15 +2,18 @@ from pydantic import BaseModel
 from datetime import datetime, date
 from enum import StrEnum
 
+
 class FineStatus(StrEnum):
-    ACCEPTED = 'Accepted'
-    DECLINED = 'Declined'
-    PENDING = 'Pending'
+    ACCEPTED = "Accepted"
+    DECLINED = "Declined"
+    PENDING = "Pending"
+
 
 class FineCategory(StrEnum):
-    TRAINING = 'Training'
-    MATCH = 'Match'
-    OTHER = 'Other'
+    TRAINING = "Training"
+    MATCH = "Match"
+    OTHER = "Other"
+
 
 class Fine(BaseModel):
     id: int | None
@@ -21,11 +24,13 @@ class Fine(BaseModel):
     description: str
     category: FineCategory
 
+
 class Payment(BaseModel):
     id: int | None
     member_id: int
     amount: int
     payment_date: date
+
 
 class RecordedFine(BaseModel):
     id: int | None
@@ -40,3 +45,4 @@ class RecordedFine(BaseModel):
     updated_at: datetime
     updated_by_member_id: int
     total_fine: int
+    comment: str | None
