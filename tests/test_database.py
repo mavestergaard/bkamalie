@@ -1,6 +1,6 @@
-
-from database.create_tables import insert_fines
+from bkamalie.database.execute import insert_fines
 import polars as pl
+
 
 def test_insert_fines(db_mock, df_fines):
     db_con = db_mock.get_connection_url()
