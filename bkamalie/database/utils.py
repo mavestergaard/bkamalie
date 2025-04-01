@@ -2,7 +2,7 @@ import polars as pl
 from datetime import date, datetime
 
 
-def get_connection(db_config: dict[str,str]) -> str:
+def get_connection(db_config: dict[str, str]) -> str:
     con_str = f"postgresql://{db_config['username']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['db_name']}"
     return con_str
 
@@ -10,12 +10,20 @@ def get_connection(db_config: dict[str,str]) -> str:
 def convert_wide_to_long(input_csv_path, fine_date: date):
     """Function used to convert old excel way of storing fines to the new way of storing fines"""
     df = pl.read_csv(input_csv_path)
-    
-    df_long = df.unpivot(on=[col for col in df.columns if col not in ["id", "fine"]], index= ["id", "fine"])
-    df_long = df_long.filter(pl.col('value').is_not_null())
-    df_long = df_long.with_columns(fixed_count=pl.lit(1), variable_count=pl.col("value").str.replace_many([" + ", "X","MIN"], "").replace("",0).cast(pl.Int32))
 
-    
+    df_long = df.unpivot(
+        on=[col for col in df.columns if col not in ["id", "fine"]],
+        index=["id", "fine"],
+    )
+    df_long = df_long.filter(pl.col("value").is_not_null())
+    df_long = df_long.with_columns(
+        fixed_count=pl.lit(1),
+        variable_count=pl.col("value")
+        .str.replace_many([" + ", "X", "MIN"], "")
+        .replace("", 0)
+        .cast(pl.Int32),
+    )
+
     return df_long.select(
         pl.col("id").alias("fine_id"),
         pl.col("fixed_count"),

@@ -44,7 +44,15 @@ app = "python -m streamlit run bkamalie/app/bka_app.py"
 python = "3.12"
 extra-dependencies = [
   "pytest",
+  "testcontainers",
 ]
 
 [tool.hatch.envs.test.scripts]
 base = "pytest {args}"
+
+[tool.hatch.envs.lint]
+detached = true
+dependencies = ["pre-commit"]
+
+[tool.hatch.envs.lint.scripts]
+run = "pre-commit run --all-files"
