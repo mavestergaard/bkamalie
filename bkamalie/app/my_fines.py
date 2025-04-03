@@ -1,24 +1,16 @@
 from bkamalie.database.model import FineStatus
 import streamlit as st
-from bkamalie.holdsport.api import (
-    get_members,
-    get_connection as get_holdsport_connection,
-)
+from bkamalie.holdsport.api import get_members, get_connection as get_holdsport_connection
 import polars as pl
 from bkamalie.app.utils import _suggest_fines, get_fines, login, render_page_links
 from bkamalie.database.utils import get_connection as get_db_connection
 
-holdsport_con = get_holdsport_connection(
-    st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
-)
-members = [
-    {"id": member.id, "name": member.name, "role": member.role.to_string()}
-    for member in get_members(holdsport_con, 5289)
-]
+holdsport_con = get_holdsport_connection(st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"])
+members = [{"id":member.id, "name":member.name, "role":member.role.to_string()} for member in get_members(holdsport_con, 5289)]
 df_members = pl.DataFrame(members)
 render_page_links(df_members)
 
-st.title("Stikkerlinjen")
+st.title("Mine Bøder")
 
 if not st.session_state.logged_in:
     if st.button("Login", type="primary"):
@@ -26,77 +18,46 @@ if not st.session_state.logged_in:
     st.stop()
 
 
-holdsport_con = get_holdsport_connection(
-    st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
-)
+
+holdsport_con = get_holdsport_connection(st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"])
 db_con = get_db_connection(st.secrets["db"])
 df_fines = get_fines(db_con)
 df_recorded_fines = pl.read_database_uri(
-    query="SELECT * FROM recorded_fines", uri=db_con
+        query="SELECT * FROM recorded_fines", uri=db_con
+    )
+df_payments = pl.read_database_uri(query="SELECT * FROM payment", uri=db_con).filter(member_id=st.session_state.current_user_id)
+
+df_fine_overview = df_recorded_fines.join(
+    df_fines, left_on="fine_id", right_on="id", how="left"
+).join(
+    df_members, left_on="fined_member_id", right_on="id", how="left", suffix="_member"
+).join(
+    df_members,
+    left_on="created_by_member_id",
+    right_on="id",
+    how="left",
+    suffix="_stikker",
+).filter(
+    fined_member_id=st.session_state.current_user_id,
+    )
+
+df_fines_accepted = df_fine_overview.filter(
+    fine_status=FineStatus.ACCEPTED,
 )
-df_fine_overview = (
-    df_recorded_fines.join(df_fines, left_on="fine_id", right_on="id", how="left")
-    .join(
-        df_members,
-        left_on="fined_member_id",
-        right_on="id",
-        how="left",
-        suffix="_member",
-    )
-    .join(
-        df_members,
-        left_on="created_by_member_id",
-        right_on="id",
-        how="left",
-        suffix="_stikker",
-    )
-)
 
+bøde_sum = df_fines_accepted["total_fine"].sum()
+betalt_sum = df_payments["amount"].sum()
+total_udestående = bøde_sum - betalt_sum
+col1, col2, col3  = st.columns(3)
+col1.metric("Total Bøder", str(bøde_sum) + " DKK", border=True)
+col2.metric("Total Betalt", str(betalt_sum) + " DKK", border=True)
+col3.metric("Total Udestående", str(total_udestående) + " DKK", border=True)
 
-@st.dialog("Tip Bødekassemesteren")
-def suggest_fines(db_con, df_members, df_fines):
-    selected_members = st.multiselect("Vælg Synder", df_members["name"])
-    selected_fine = st.multiselect("Vælg Bøde", df_fines["name"], max_selections=1)
-    df_selected_fine = (
-        df_fines.filter(name=selected_fine[0]) if selected_fine else df_fines.head(0)
-    )
-    coll, col2, col3 = st.columns(3)
+phone_number = "50485676"  # Replace with your MobilePay number
 
-    fixed_amount = df_selected_fine["fixed_amount"].item() if selected_fine else 0
-    coll.metric("Fixed Amount", fixed_amount)
-    number_of_fines_fixed = coll.number_input("Antal", value=1, key="fixed")
+mobilepay_link = f"https://qr.mobilepay.dk/box/8aef8321-e717-4f09-bb62-aaff8fef69f1/pay-in"
 
-    variable_amount = df_selected_fine["variable_amount"].item() if selected_fine else 0
-    col2.metric("Varaible Amount", variable_amount)
-    number_of_fines_variable = col2.number_input("Antal", value=0, key="variable")
-
-    holdbox_amount = df_selected_fine["holdbox_amount"] if selected_fine else 0
-    col3.metric("Holdboxe", holdbox_amount)
-    number_of_holdboxe = col3.number_input("Antal", value=0, key="holdbox")
-
-    comment = st.text_input("Tilføj kommentar", None)
-    if st.button("Suggest fine"):
-        try:
-            _suggest_fines(
-                db_con=db_con,
-                members=selected_members,
-                selected_fine=selected_fine,
-                df_fines=df_fines,
-                count_fixed=number_of_fines_fixed,
-                count_variable=number_of_fines_variable,
-                count_holdbox=number_of_holdboxe,
-                df_members=df_members,
-                suggested_by_user_id=st.session_state.current_user_id,
-                comment=comment,
-            )
-            st.success("Fine suggested")
-            st.rerun()
-        except Exception as e:
-            st.error(f"Error: {e}")
-
-
-if st.button("Tip Bødekassemesteren", type="primary"):
-    suggest_fines(db_con, df_members, df_fines)
+st.link_button("Betal med MobilePay","https://qr.mobilepay.dk/box/8aef8321-e717-4f09-bb62-aaff8fef69f1/pay-in", type="primary")
 
 st.markdown(
     """
@@ -153,14 +114,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
 # Generate flat, wide cards for fines
 def create_fine_cards(row: dict[str, str]):
     status_class = (
-        "pending"
-        if row["fine_status"] == "Pending"
-        else "declined"
-        if row["fine_status"] == "Declined"
+        "pending" if row["fine_status"] == "Pending"
+        else "declined" if row["fine_status"] == "Declined"
         else "accepted"
     )
     fixed_amount_total = row["fixed_amount"] * row["fixed_count"]
@@ -185,13 +143,11 @@ def create_fine_cards(row: dict[str, str]):
     """
     return html
 
-
 st.markdown("<div class='card-container'>", unsafe_allow_html=True)
+
 selection = st.pills("Fine Status", FineStatus, selection_mode="multi")
 if selection:
     df_fine_overview = df_fine_overview.filter(pl.col("fine_status").is_in(selection))
-for row in df_fine_overview.sort(
-    ["fine_date", "updated_at"], descending=True
-).to_dicts():
+for row in df_fine_overview.sort(["fine_date", "updated_at"], descending=True).to_dicts():
     st.markdown(create_fine_cards(row), unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)

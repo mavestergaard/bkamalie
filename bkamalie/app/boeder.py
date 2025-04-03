@@ -3,11 +3,10 @@ import streamlit as st
 import polars as pl
 from bkamalie.database.utils import get_connection as get_db_connection
 from bkamalie.holdsport.api import (
-    MENS_TEAM_ID,
-    FINEBOX_ADMIN_MEMBER_ID,
     get_members,
     get_connection as get_holdsport_connection,
 )
+
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
 )

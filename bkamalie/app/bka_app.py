@@ -24,6 +24,12 @@ boeder = st.Page(
     icon="📜",
 )
 
+my_fines = st.Page(
+    "my_fines.py",
+    title="Mine Bøder",
+    icon="",
+)
+
 
 boedekasse_admin = st.Page(
     "boedekasse_admin.py",
@@ -33,7 +39,7 @@ boedekasse_admin = st.Page(
 
 
 pg = st.navigation(
-    [stikkerlinjen, boedekasse, boeder, boedekasse_admin, dashboard_page],
+    [stikkerlinjen, my_fines, boedekasse, boeder, boedekasse_admin, dashboard_page],
     position="hidden",
 )
 pg.run()
