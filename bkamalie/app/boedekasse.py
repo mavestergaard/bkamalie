@@ -7,12 +7,9 @@ from bkamalie.holdsport.api import (
 )
 import polars as pl
 from bkamalie.app.utils import (
-    fines_overview_show_cols,
     get_fines,
     login,
     render_page_links,
-    fines_overview_detail_cols,
-    replace_id_with_name,
 )
 from bkamalie.database.utils import get_connection as get_db_connection
 import plotly.express as px
@@ -72,36 +69,15 @@ df_fine_overview = df_fine_overview.with_columns(
 
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.metric("Total Bøder", millify(df_fine_overview["total_fine"].sum(), precision=2))
+    st.metric("Total Bøder", str(df_fine_overview["total_fine"].sum()) + " DKK")
 with col2:
     st.metric(
         "Total Holdboxe",
-        millify(df_fine_overview["total_holdboxes"].sum(), precision=2),
+        df_fine_overview["total_holdboxes"].sum(),
     )
 with col3:
     st.metric("Bøder Betalt", millify(df_payments["amount"].sum(), precision=2))
 
-
-# create_tables(db_con)
-
-st.subheader("Udstedte bøder", divider=True)
-show_details = st.toggle("Show Details", False)
-extra_cols = (
-    fines_overview_detail_cols
-    + [
-        replace_id_with_name("created_by_member_id", "Oprettet af", df_members).alias(
-            "Oprettet Af"
-        )
-    ]
-    if show_details
-    else []
-)
-st.dataframe(
-    df_fine_overview.select(fines_overview_show_cols + extra_cols).sort(
-        "Bøde Dato", descending=True
-    ),
-    use_container_width=True,
-)
 
 df_accepted_fines = df_fine_overview.filter(fine_status="Accepted")
 

@@ -31,18 +31,19 @@ def render_page_links(df_members: pl.DataFrame) -> None:
         st.session_state.logged_in = True
         st.session_state.current_user_id = 1412409
     st.image("bkamalie/graphics/bka_logo.png")
-    col1, col2, col3, col4, col5 = st.columns(5, border=True)
+    col1, col2, col3 = st.columns(3)
     col1.page_link("stikkerlinjen.py", label="Stikkerlinjen", icon="🕵️‍♂️")
-    col2.page_link(
+    col2.page_link("my_fines.py", label="Mine Bøder", icon="🧾")
+    col3.page_link(
         "boedekasse.py",
         label="Bødekasse",
         icon="💰",
     )
-    col3.page_link("boeder.py", label="Bøder", icon="📜")
-    col4.page_link(
+    col1.page_link("boeder.py", label="Bøder", icon="📜")
+    col2.page_link(
         "boedekasse_admin.py", label="Admin", icon="👮‍♂️", use_container_width=True
     )
-    col5.page_link("dashboard.py", label="Holdsport", icon="⚽")
+    col3.page_link("dashboard.py", label="Holdsport", icon="⚽")
     if "logged_in" not in st.session_state:
         st.warning("Please login to proceed")
         st.session_state.logged_in = False
