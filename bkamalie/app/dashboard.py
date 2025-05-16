@@ -17,7 +17,7 @@ members = [
     for member in get_members(holdsport_con, 5289)
 ]
 df_members = pl.DataFrame(members)
-render_page_links(df_members)
+render_page_links()
 
 
 st.title("BK Amalie Dashboard")

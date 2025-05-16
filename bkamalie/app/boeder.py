@@ -15,7 +15,7 @@ members = [
     for member in get_members(holdsport_con, 5289)
 ]
 df_members = pl.DataFrame(members)
-render_page_links(df_members)
+render_page_links()
 
 db_config = st.secrets["db"]
 db_con = get_db_connection(db_config)
