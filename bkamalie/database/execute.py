@@ -23,12 +23,13 @@ CREATE TABLE IF NOT EXISTS fine (
     category fine_category NOT NULL
 );
 
--- Payment table
-CREATE TABLE IF NOT EXISTS payment (
+-- Payments table
+CREATE TABLE IF NOT EXISTS payments (
     id SERIAL PRIMARY KEY,
     member_id INTEGER NOT NULL,
     amount INTEGER NOT NULL,
-    payment_date TIMESTAMP NOT NULL
+    payment_date TIMESTAMP NOT NULL,
+    payment_status fine_status NOT NULL
 );
 
 -- RecordedFines table
@@ -51,10 +52,10 @@ CREATE TABLE IF NOT EXISTS recorded_fines (
 """
 
 
-def execute_query(con: str, query: str) -> bool:
+def execute_query(con: str, query: str, params: tuple = None) -> bool:
     with psycopg2.connect(con) as conn:
         with conn.cursor() as cursor:
-            cursor.execute(query)
+            cursor.execute(query, params)
             conn.commit()
 
 
@@ -65,8 +66,13 @@ def create_tables(con: str) -> None:
 def insert_payment(con: str, payment: Payment) -> None:
     execute_query(
         con,
-        "INSERT INTO payment (member_id, amount, payment_date) VALUES (%s, %s, %s)",
-        (payment.member_id, payment.amount, payment.payment_date),
+        "INSERT INTO payments (member_id, amount, payment_date, payment_status) VALUES (%s, %s, %s, %s)",
+        (
+            payment.member_id,
+            payment.amount,
+            payment.payment_date,
+            payment.payment_status,
+        ),
     )
 
 
@@ -104,3 +110,17 @@ def upsert_recorded_fines(con: str, df: pl.DataFrame) -> None:
     with psycopg2.connect(con) as conn:
         with conn.cursor() as cursor:
             execute_values(cursor, query, df.rows())
+
+
+def upsert_payments(con: str, df_payments: pl.DataFrame) -> None:
+    query = """
+        INSERT INTO payments (id, member_id, amount, payment_date, payment_status)
+        VALUES %s
+        ON CONFLICT (id) DO UPDATE
+            SET amount = excluded.amount,
+            SET payment_date = excluded.payment_date,
+            SET payment_status  = excluded.payment_status;
+    """
+    with psycopg2.connect(con) as conn:
+        with conn.cursor() as cursor:
+            execute_values(cursor, query, df_payments.rows())
