@@ -118,8 +118,8 @@ def upsert_payments(con: str, df_payments: pl.DataFrame) -> None:
         VALUES %s
         ON CONFLICT (id) DO UPDATE
             SET amount = excluded.amount,
-            SET payment_date = excluded.payment_date,
-            SET payment_status  = excluded.payment_status;
+            payment_date = excluded.payment_date,
+            payment_status  = excluded.payment_status;
     """
     with psycopg2.connect(con) as conn:
         with conn.cursor() as cursor:

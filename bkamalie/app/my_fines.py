@@ -2,6 +2,7 @@ from bkamalie.database.execute import insert_payment
 from bkamalie.database.model import FineStatus, Payment
 import streamlit as st
 from bkamalie.holdsport.api import (
+    FINEBOX_ADMIN_MEMBER_ID,
     get_members,
     get_connection as get_holdsport_connection,
 )
@@ -80,7 +81,7 @@ mobilepay_link = (
 
 
 @st.dialog("Betal Udestående")
-def pay_fines(db_con, total_udestående):
+def pay_fines(db_con, total_udestående, df_members):
     st.link_button(
         "Link til MobilePay",
         "https://qr.mobilepay.dk/box/8aef8321-e717-4f09-bb62-aaff8fef69f1/pay-in",
@@ -88,13 +89,27 @@ def pay_fines(db_con, total_udestående):
         use_container_width=True,
     )
     st.metric("Nuværende Udestående", value=total_udestående, border=True)
-    st.text_input("Navn", st.session_state.current_user_full_name)
+    disabled = (
+        False
+        if st.session_state.current_user_id in [FINEBOX_ADMIN_MEMBER_ID, 1412409]
+        else True
+    )
+    selected_member = st.multiselect(
+        "Navn",
+        options=df_members["name"],
+        default=st.session_state.current_user_full_name,
+        disabled=disabled,
+        max_selections=1,
+    )
     payment_date = st.date_input("Betalingsdato", datetime.now())
     amount_paid = st.number_input("Beløb Overført", value=total_udestående)
-
+    if not selected_member:
+        st.warning("Vælg et medlem for at registrere betaling")
+        st.stop()
+    selected_member_id = df_members.filter(name=selected_member[0])["id"][0]
     payments_details = Payment(
         id=None,
-        member_id=st.session_state.current_user_id,
+        member_id=selected_member_id,
         amount=amount_paid,
         payment_date=payment_date,
         payment_status=FineStatus.PENDING,
@@ -109,7 +124,7 @@ def pay_fines(db_con, total_udestående):
 
 
 if st.button("Betal Udestående", type="primary"):
-    pay_fines(db_con, total_udestående)
+    pay_fines(db_con, total_udestående, df_members)
 
 st.markdown(
     """
