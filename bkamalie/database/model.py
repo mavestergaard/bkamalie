@@ -29,7 +29,8 @@ class Payment(BaseModel):
     id: int | None
     member_id: int
     amount: int
-    payment_date: date
+    payment_date: datetime
+    payment_status: FineStatus
 
 
 class RecordedFine(BaseModel):
@@ -46,3 +47,8 @@ class RecordedFine(BaseModel):
     updated_by_member_id: int
     total_fine: int
     comment: str | None
+
+
+class User(BaseModel):
+    id: int | None
+    full_name: str
