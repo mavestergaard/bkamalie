@@ -4,6 +4,7 @@ from bkamalie.database.model import FineStatus, RecordedFine
 import polars as pl
 import streamlit as st
 from bkamalie.holdsport.api import verify_user
+from streamlit_cookies_controller import CookieController
 
 fines_overview_show_cols = [
     pl.col("name_member").alias("Navn"),
@@ -24,12 +25,13 @@ fines_overview_detail_cols = [
 ]
 
 
-def render_page_links(df_members: pl.DataFrame) -> None:
+def render_page_links() -> None:
     """Call this as the first function in every app script"""
     headers = st.context.headers
     if "localhost" in headers.get("Host"):
         st.session_state.logged_in = True
         st.session_state.current_user_id = 1412409
+        st.session_state.current_user_full_name = "Mikkel Vestergaard"
     st.image("bkamalie/graphics/bka_logo.png")
     col1, col2, col3 = st.columns(3)
     col1.page_link("stikkerlinjen.py", label="Stikkerlinjen", icon="🕵️‍♂️")
@@ -48,12 +50,12 @@ def render_page_links(df_members: pl.DataFrame) -> None:
         st.warning("Please login to proceed")
         st.session_state.logged_in = False
         st.session_state.current_user_id = None
+        st.session_state.current_user_full_name = None
     else:
         if st.session_state.logged_in:
-            member_name = df_members.filter(
-                pl.col("id") == st.session_state.current_user_id
-            )["name"].item()
-            st.info(f"Logged in as: {member_name} ({st.session_state.current_user_id})")
+            st.info(
+                f"Logged in as: {st.session_state.current_user_full_name} ({st.session_state.current_user_id})"
+            )
         else:
             st.warning(
                 "Please login to proceed. Use your Holdsport credentials when signing in."
@@ -65,12 +67,17 @@ def login() -> None:
     st.info("Please login using your Holdsport credentials")
     username = st.text_input("Email", autocomplete="email")
     password = st.text_input("Password", type="password")
+    controller = CookieController()
     if st.button("Submit"):
-        current_user_id = verify_user(username, password)
-        if current_user_id:
+        current_user = verify_user(username, password)
+        if current_user:
             st.success("Login successful")
             st.session_state.logged_in = True
-            st.session_state.current_user_id = current_user_id
+            st.session_state.current_user_id = current_user.id
+            st.session_state.current_user_full_name = current_user.full_name
+            controller.set("current_user_id", current_user.id)
+            controller.set("current_user_full_name", current_user.full_name)
+            controller.set("logged_in", True)
         else:
             st.error("Login failed")
 

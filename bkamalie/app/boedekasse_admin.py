@@ -1,4 +1,8 @@
-from bkamalie.database.execute import insert_payment, upsert_recorded_fines
+from bkamalie.database.execute import (
+    insert_payment,
+    upsert_payments,
+    upsert_recorded_fines,
+)
 from bkamalie.database.model import FineStatus, Payment, RecordedFine
 import streamlit as st
 from bkamalie.holdsport.api import (
@@ -25,7 +29,7 @@ members = [
     for member in get_members(holdsport_con, 5289)
 ]
 df_members = pl.DataFrame(members)
-render_page_links(df_members)
+render_page_links()
 
 if not st.session_state.logged_in:
     if st.button("Login", type="primary"):
@@ -55,7 +59,11 @@ with st.spinner("Loading data...", show_time=True):
     df_recorded_fines = pl.read_database_uri(
         query="SELECT * FROM recorded_fines", uri=db_con
     )
-    df_payments = pl.read_database_uri(query="SELECT * FROM payment", uri=db_con)
+    df_payments = pl.read_database_uri(query="SELECT * FROM payments", uri=db_con)
+
+df_payments = df_payments.join(
+    df_members, left_on="member_id", right_on="id", how="left", suffix="_member"
+)
 
 df_fine_overview = (
     df_recorded_fines.join(df_fines, left_on="fine_id", right_on="id", how="left")
@@ -143,8 +151,62 @@ def register_payment(df_members: pl.DataFrame):
             st.error(f"Error: {e}")
 
 
+updated_payments = []
 with st.container(border=True):
-    st.subheader("Betalinger Modtaget")
-    st.dataframe(df_payments.sort("payment_date", descending=True))
-    if st.button("Register Betaling"):
-        register_payment(df_members)
+    st.subheader("Betalinger der afventer godkendelse")
+    for row in (
+        df_payments.filter(payment_status=FineStatus.PENDING)
+        .sort(["payment_date"], descending=True)
+        .to_dicts()
+    ):
+        col1, col2, col3 = st.columns(3)
+        col1.text_input("Navn", row["name"], disabled=True, key=f"navn_{row['id']}")
+        new_date = col2.date_input(
+            "Betalingsdato", row["payment_date"], key=f"date_{row['id']}"
+        )
+        new_amount = col3.number_input(
+            "Beløb betalt", value=row["amount"], key=f"amount_{row['id']}"
+        )
+        new_status = st.pills(
+            "Payment Status",
+            FineStatus,
+            selection_mode="single",
+            default=row["payment_status"],
+            key=f"status_{row['id']}",
+        )
+        if new_status != row["payment_status"]:
+            updated_payments.append(
+                Payment(
+                    id=row["id"],
+                    member_id=row["member_id"],
+                    amount=new_amount,
+                    payment_date=new_date,
+                    payment_status=new_status,
+                )
+            )
+        st.divider()
+    df_updated_payments = pl.DataFrame(updated_payments)
+    if st.button("Opdater Betalinger"):
+        try:
+            upsert_payments(db_con, df_updated_payments)
+            st.success("Betalinger opdateret")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+
+with st.container(border=True):
+    st.subheader("Betalinger Accepteret")
+    st.dataframe(
+        df_payments.filter(payment_status=FineStatus.ACCEPTED).sort(
+            "payment_date", descending=True
+        )
+    )
+
+with st.container(border=True):
+    st.subheader("Betalinger Afvist")
+    st.dataframe(
+        df_payments.filter(payment_status=FineStatus.DECLINED).sort(
+            "payment_date", descending=True
+        )
+    )

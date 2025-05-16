@@ -24,7 +24,7 @@ members = [
     for member in get_members(holdsport_con, 5289)
 ]
 df_members = pl.DataFrame(members)
-render_page_links(df_members)
+render_page_links()
 
 
 st.title("Bødekassen")
@@ -41,7 +41,7 @@ with st.spinner("Loading data...", show_time=True):
     df_recorded_fines = pl.read_database_uri(
         query="SELECT * FROM recorded_fines", uri=db_con
     )
-    df_payments = pl.read_database_uri(query="SELECT * FROM payment", uri=db_con)
+    df_payments = pl.read_database_uri(query="SELECT * FROM payments", uri=db_con)
     holdsport_con = get_holdsport_connection(
         st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
     )

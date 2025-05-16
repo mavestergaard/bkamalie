@@ -1,5 +1,6 @@
 import requests
 from datetime import date, datetime, timedelta
+from bkamalie.database.model import User
 from pydantic import BaseModel
 from enum import StrEnum, Enum
 
@@ -62,11 +63,20 @@ def get_connection(user_name: str, password: str) -> str:
     return url
 
 
-def verify_user(user_name: str, password: str) -> str | None:
+def verify_user(user_name: str, password: str) -> User | None:
     con = get_connection(user_name, password)
     url = f"{con}/v1/user"
     response = requests.get(url)
-    return response.json().get("id") if response.status_code == 200 else None
+    return (
+        User(
+            id=response.json().get("id"),
+            full_name=response.json().get("firstname")
+            + " "
+            + response.json().get("lastname"),
+        )
+        if response.status_code == 200
+        else None
+    )
 
 
 def get_teams(con: str):

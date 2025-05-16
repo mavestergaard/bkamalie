@@ -26,6 +26,7 @@ dependencies = [
     "plotly",
     "psycopg2-binary",
     "millify",
+    "streamlit-cookies-controller",
 ]
 
 [tool.hatch.build]
