@@ -10,6 +10,11 @@ import polars as pl
 from bkamalie.app.utils import get_fines, login, render_page_links
 from bkamalie.database.utils import get_connection as get_db_connection
 from datetime import datetime
+from bkamalie.css_styles.payment_card import (
+    get_payment_card_style,
+    get_payment_card_html,
+)
+from bkamalie.app.model import DisplayPayment
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
@@ -36,9 +41,14 @@ df_fines = get_fines(db_con)
 df_recorded_fines = pl.read_database_uri(
     query="SELECT * FROM recorded_fines", uri=db_con
 )
-df_payments = pl.read_database_uri(query="SELECT * FROM payments", uri=db_con).filter(
-    member_id=st.session_state.current_user_id, payment_status=FineStatus.ACCEPTED
+df_payments = (
+    pl.read_database_uri(query="SELECT * FROM payments", uri=db_con)
+    .filter(member_id=st.session_state.current_user_id)
+    .join(df_members, left_on="member_id", right_on="id", how="left", suffix="_member")
+    .rename({"name": "member_name"})
 )
+
+df_payments_paid = df_payments.filter(payment_status=FineStatus.ACCEPTED)
 
 df_fine_overview = (
     df_recorded_fines.join(df_fines, left_on="fine_id", right_on="id", how="left")
@@ -66,12 +76,14 @@ df_fines_accepted = df_fine_overview.filter(
 )
 
 bøde_sum = df_fines_accepted["total_fine"].sum()
-betalt_sum = df_payments["amount"].sum()
+betalt_sum = df_payments_paid["amount"].sum()
+amount_pending = df_payments.filter(payment_status=FineStatus.PENDING)["amount"].sum()
 total_udestående = bøde_sum - betalt_sum
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 col1.metric("Total Bøder", str(bøde_sum) + " DKK", border=True)
 col2.metric("Total Betalt", str(betalt_sum) + " DKK", border=True)
-col3.metric("Total Udestående", str(total_udestående) + " DKK", border=True)
+col3.metric("Afventer Godkendelse", str(amount_pending) + " DKK", border=True)
+col4.metric("Total Udestående", str(total_udestående) + " DKK", border=True)
 
 phone_number = "50485676"  # Replace with your MobilePay number
 
@@ -125,6 +137,15 @@ def pay_fines(db_con, total_udestående, df_members):
 
 if st.button("Betal Udestående", type="primary"):
     pay_fines(db_con, total_udestående, df_members)
+
+with st.expander("Betalingshistorik", expanded=False):
+    st.markdown(f"{get_payment_card_style()}", unsafe_allow_html=True)
+
+    for row in df_payments.sort(["payment_date"], descending=True).to_dicts():
+        payment = DisplayPayment(**row)
+        payment_html = get_payment_card_html(payment)
+        st.markdown(payment_html, unsafe_allow_html=True)
+
 
 st.markdown(
     """

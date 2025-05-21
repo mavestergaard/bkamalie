@@ -189,7 +189,7 @@ with st.container(border=True):
     if st.button("Opdater Betalinger"):
         try:
             upsert_payments(db_con, df_updated_payments)
-            st.success("Betalinger opdateret")
+            st.success(f"{len(df_updated_payments)} Betalinger opdateret")
             st.rerun()
         except Exception as e:
             st.error(f"Error: {e}")
