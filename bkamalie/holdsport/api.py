@@ -64,9 +64,10 @@ def get_connection(user_name: str, password: str) -> str:
 
 
 def verify_user(user_name: str, password: str) -> User | None:
-    con = get_connection(user_name, password)
-    url = f"{con}/v1/user"
-    response = requests.get(url)
+    url = "https://api.holdsport.dk/v1/user"
+    response = requests.get(
+        url, auth=(user_name, password), headers={"Accept": "application/json"}
+    )
     return (
         User(
             id=response.json().get("id"),
