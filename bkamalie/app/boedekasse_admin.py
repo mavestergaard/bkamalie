@@ -20,6 +20,7 @@ from bkamalie.app.utils import (
     fines_overview_show_cols,
 )
 from bkamalie.database.utils import get_connection as get_db_connection
+import polars.selectors as cs
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
@@ -210,3 +211,58 @@ with st.container(border=True):
             "payment_date", descending=True
         )
     )
+
+
+with st.container(border=True):
+    st.subheader("Medlemsoversigt - bøder vs betalinger")
+    df_payments_grouped = df_payments.group_by("member_id", "name").agg(
+        amount_pending=pl.when(pl.col("payment_status") == FineStatus.PENDING)
+        .then(pl.col("amount"))
+        .otherwise(0)
+        .sum(),
+        amount_paid=pl.when(pl.col("payment_status") == FineStatus.ACCEPTED)
+        .then(pl.col("amount"))
+        .otherwise(0)
+        .sum(),
+    )
+    df_fines_summed = df_fine_overview.group_by("fined_member_id", "name_member").agg(
+        amount_fined_pending=pl.when(pl.col("fine_status") == FineStatus.PENDING)
+        .then(pl.col("total_fine"))
+        .otherwise(0)
+        .sum(),
+        amount_fined=pl.when(pl.col("fine_status") == FineStatus.ACCEPTED)
+        .then(pl.col("total_fine"))
+        .otherwise(0)
+        .sum(),
+    )
+    df_overview = df_fines_summed.join(
+        df_payments_grouped,
+        left_on=["fined_member_id", "name_member"],
+        right_on=["member_id", "name"],
+        how="outer",
+        coalesce=True,
+    ).with_columns(cs.numeric().fill_null(0))
+    df_overview = df_overview.with_columns(
+        amount_due=pl.col("amount_paid") - pl.col("amount_fined")
+    ).sort("amount_due")
+
+    bødesum_accepteret = df_overview["amount_fined"].sum()
+    bødesum_til_godkendelse = df_overview["amount_fined_pending"].sum()
+    indbetalinger_accepteret = df_overview["amount_paid"].sum()
+    indbetalinger_til_godkendelse = df_overview["amount_pending"].sum()
+
+    col1, col2 = st.columns(2)
+    col1.metric("Bødesum - Accepted", str(bødesum_accepteret) + " DKK", border=True)
+    col2.metric(
+        "Bødesum - Til Godkendelse", str(bødesum_til_godkendelse) + " DKK", border=True
+    )
+    col1.metric(
+        "Indbetalinger - Accepted", str(indbetalinger_accepteret) + " DKK", border=True
+    )
+    col2.metric(
+        "Indebetalinger - Til Godkendelse",
+        str(indbetalinger_til_godkendelse) + " DKK",
+        border=True,
+    )
+
+    st.dataframe(df_overview)

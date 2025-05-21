@@ -28,6 +28,8 @@ fines_overview_detail_cols = [
 def render_page_links() -> None:
     """Call this as the first function in every app script"""
     headers = st.context.headers
+    controller = CookieController()
+    login_status = controller.get("logged_in")
     if "localhost" in headers.get("Host"):
         st.session_state.logged_in = True
         st.session_state.current_user_id = 1412409
@@ -46,12 +48,18 @@ def render_page_links() -> None:
         "boedekasse_admin.py", label="Admin", icon="👮‍♂️", use_container_width=True
     )
     col3.page_link("dashboard.py", label="Holdsport", icon="⚽")
-    if "logged_in" not in st.session_state:
+    if ("logged_in" not in st.session_state) & (login_status is None):
         st.warning("Please login to proceed")
         st.session_state.logged_in = False
         st.session_state.current_user_id = None
         st.session_state.current_user_full_name = None
     else:
+        if login_status:
+            st.session_state.logged_in = True
+            st.session_state.current_user_id = controller.get("current_user_id")
+            st.session_state.current_user_full_name = controller.get(
+                "current_user_full_name"
+            )
         if st.session_state.logged_in:
             st.info(
                 f"Logged in as: {st.session_state.current_user_full_name} ({st.session_state.current_user_id})"

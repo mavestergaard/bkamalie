@@ -1,6 +1,7 @@
 from bkamalie.app.model import DisplayPayment
 
-def get_payment_card_style()-> str:
+
+def get_payment_card_style() -> str:
     return """
 <style>
     .card-container {
@@ -52,6 +53,7 @@ def get_payment_card_style()-> str:
     }
 </style>
 """
+
 
 def get_payment_card_html(payment: DisplayPayment) -> str:
     status_class = payment.payment_status.lower()
