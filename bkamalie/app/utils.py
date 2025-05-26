@@ -24,6 +24,16 @@ fines_overview_detail_cols = [
     pl.col("holdbox_count").alias("Holdboxe Antal"),
 ]
 
+payments_overview_show_cols = [
+    pl.col("id").alias("ID"),
+    pl.col("member_id").alias("Medlems ID"),
+    pl.col("amount").alias("Beløb"),
+    pl.col("payment_date").alias("Betalingsdato"),
+    pl.col("payment_status").alias("Betaling Status"),
+    pl.col("name").alias("Navn"),
+    pl.col("role").alias("Rolle"),
+]
+
 
 def render_page_links() -> None:
     """Call this as the first function in every app script"""

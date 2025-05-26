@@ -18,6 +18,7 @@ from bkamalie.app.utils import (
     render_page_links,
     fines_overview_detail_cols,
     fines_overview_show_cols,
+    payments_overview_show_cols
 )
 from bkamalie.database.utils import get_connection as get_db_connection
 import polars.selectors as cs
@@ -196,6 +197,45 @@ with st.container(border=True):
             st.error(f"Error: {e}")
 
 
+
+df_payments_accepted = df_payments.filter(payment_status="Accepted")
+
+
+@st.dialog("Opdater Accepterede Betalinger", width="large")
+def update_accepted_fines(df_fines_accepted_current: pl.DataFrame):
+    column_config = {
+        "Betaling Status": st.column_config.SelectboxColumn(
+            options=FineStatus,
+            required=True,
+        )
+    }
+    df_payments_edited = st.data_editor(
+        df_fines_accepted_current.select(payments_overview_show_cols),
+        column_config=column_config,
+        disabled=[
+            col for col in df_fines_accepted_current.columns if col != "Betaling Status"
+        ],
+    )
+    if st.button("Submit"):
+        df_payments_updated = df_fines_accepted_current.filter(
+            pl.col("payment_status") != df_payments_edited["Betaling Status"]
+        )
+        print(df_payments_edited)
+        print(df_payments_updated)
+        df_payments_updated = df_payments_updated.with_columns(
+            payment_status=df_payments_edited["Betaling Status"]
+        ).select(list(Payment.model_fields))
+        if len(df_payments_updated) == 0:
+            st.info("No changes made")
+        else:
+            try:
+                upsert_payments(db_con, df_payments_updated)
+                st.success("Payments updated")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+
 with st.container(border=True):
     st.subheader("Betalinger Accepteret")
     st.dataframe(
@@ -203,6 +243,10 @@ with st.container(border=True):
             "payment_date", descending=True
         )
     )
+    if st.button("Opdater Accepterede Bøder"):
+        update_accepted_fines(df_payments_accepted)
+    
+
 
 with st.container(border=True):
     st.subheader("Betalinger Afvist")
