@@ -27,7 +27,7 @@ boeder = st.Page(
 my_fines = st.Page(
     "my_fines.py",
     title="Mine Bøder",
-    icon="",
+    icon="🏃‍♂️",
 )
 
 
