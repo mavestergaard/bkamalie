@@ -20,7 +20,7 @@ classifiers = [
 dependencies = [
     "requests",
     "pydantic",
-    "streamlit",
+    "streamlit>=1.45.0",
     "polars[sqlalchemy]",
     "connectorx",
     "plotly",
