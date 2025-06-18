@@ -2,6 +2,7 @@ from bkamalie.database.execute import (
     insert_payment,
     upsert_payments,
     upsert_recorded_fines,
+    upsert_recorded_fines_from_basemodel,
 )
 from bkamalie.database.model import FineStatus, Payment, RecordedFine
 import streamlit as st
@@ -10,7 +11,7 @@ from bkamalie.holdsport.api import (
     get_members,
     get_connection as get_holdsport_connection,
 )
-from datetime import date
+from datetime import date, datetime
 import polars as pl
 from bkamalie.app.utils import (
     get_fines,
@@ -94,21 +95,27 @@ def update_fines(df_fines_pending_current: pl.DataFrame):
         "Bøde Status": st.column_config.SelectboxColumn(
             options=FineStatus,
             required=True,
-        )
+        ),
+        "id": None,
     }
     df_fines_edited = st.data_editor(
-        df_fines_pending_current.select(fines_overview_show_cols),
+        df_fines_pending_current,
         column_config=column_config,
         disabled=[
             col for col in df_fines_pending_current.columns if col != "Bøde Status"
         ],
     )
     if st.button("Submit"):
-        df_fines_updated = df_fines_pending_current.filter(
-            pl.col("fine_status") != df_fines_edited["Bøde Status"]
+        df_fines_updated = df_fines_edited.filter(
+            pl.col("Bøde Status") != df_fines_pending_current["Bøde Status"]
         )
-        df_fines_updated = df_fines_updated.with_columns(
-            fine_status=df_fines_edited["Bøde Status"]
+        fines_overview_show_cols_reversed = [
+            pl.col(expr.meta.output_name()).alias(expr.meta.root_names()[0])
+            for expr in fines_overview_show_cols
+        ]
+
+        df_fines_updated = df_fines_updated.select(
+            fines_overview_show_cols_reversed
         ).select(list(RecordedFine.model_fields))
         if len(df_fines_updated) == 0:
             st.info("No changes made")
@@ -121,18 +128,116 @@ def update_fines(df_fines_pending_current: pl.DataFrame):
                 st.error(f"Error: {e}")
 
 
+def update_fine(recorded_fine: RecordedFine, new_status: FineStatus):
+    """Update a single fine's status"""
+    if new_status != recorded_fine.fine_status:
+        recorded_fine.fine_status = new_status
+        recorded_fine.updated_at = datetime.now()
+        recorded_fine.updated_by_member_id = st.session_state.current_user_id
+        return recorded_fine
+
+
+@st.dialog("Opdater Bøder", width="large")
+def update_fines_new(
+    recorded_fines: list[RecordedFine], df_members, df_fines, session_state_prefix: str
+):
+    members_dict = {row.get("id"): row.get("name") for row in df_members.to_dicts()}
+    fines_dict = {row.get("id"): row.get("name") for row in df_fines.to_dicts()}
+    status_chars = {
+        "Accepted": ":green[A]",
+        "Pending": ":orange[P]",
+        "Declined": ":red[D]",
+    }
+    for fine in recorded_fines:
+        (
+            col_fine_name,
+            col_member_name,
+            col_fine_counts,
+            col_fine_amount,
+            col_fine_status,
+        ) = st.columns([0.35, 0.25, 0.1, 0.1, 0.2])
+        member_name = members_dict.get(fine.fined_member_id).strip()
+        fine_name = fines_dict.get(fine.fine_id)
+        col_fine_name.badge(f"**{fine_name}**", color="primary")
+        col_member_name.badge(f"**{member_name}**", color="primary")
+        col_fine_counts.badge(
+            f"F:{fine.fixed_count} V:{fine.variable_count}", color="primary"
+        )
+        col_fine_amount.badge(f"{fine.total_fine:,} kr.", color="primary")
+        col_fine_status.pills(
+            "Fine Status",
+            FineStatus,
+            format_func=lambda status: f"{status_chars[status]}",
+            selection_mode="single",
+            default=fine.fine_status,
+            label_visibility="collapsed",
+            key=f"{session_state_prefix}_{fine.id}",
+        )
+        st.markdown(
+            """<hr style="margin: 2px 0; border: none; border-top: 1px solid #CCC;">""",
+            unsafe_allow_html=True,
+        )
+
+    if st.button("Submit", key="upsert_fines_new"):
+        updated_fines = [
+            updated_fine
+            for recorded_fine in recorded_fines
+            if (
+                updated_fine := update_fine(
+                    recorded_fine,
+                    st.session_state[f"{session_state_prefix}_{recorded_fine.id}"],
+                )
+            )
+            is not None
+        ]
+        st.write(len(updated_fines))
+        if len(updated_fines) == 0:
+            st.info("No changes made")
+        else:
+            try:
+                upsert_recorded_fines_from_basemodel(db_con, updated_fines)
+                st.success("Fines updated")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+
 with st.container(border=True):
-    st.subheader("Afventende Bøder")
+    recorded_fines = [RecordedFine(**row) for row in df_fines_pending.to_dicts()]
     show_details = st.toggle("Show Details", False)
     extra_cols = fines_overview_detail_cols if show_details else []
+    df_fines_pending = df_fines_pending.select(
+        fines_overview_show_cols + extra_cols
+    ).sort("Bøde Dato", descending=True)
     st.dataframe(
-        df_fines_pending.select(fines_overview_show_cols + extra_cols).sort(
-            "Bøde Dato", descending=True
-        ),
+        df_fines_pending,
+        column_config={"id": None},
         use_container_width=True,
     )
-    if st.button("Opdater Afventende Bøder"):
-        update_fines(df_fines_pending)
+    if st.button("Opdater Afventende Bøder Ny"):
+        update_fines_new(recorded_fines, df_members, df_fines, "updated_fine_status")
+
+with st.container(border=True):
+    st.subheader("Opdater Bøde Status")
+    selected_member = st.multiselect(
+        "Vælg Medlem",
+        options=df_members["name"].to_list(),
+        max_selections=1,
+    )
+    if selected_member:
+        df_fines_member = df_fine_overview.filter(
+            pl.col("name_member").is_in(selected_member)
+        ).sort("fine_date", descending=True)
+        st.dataframe(
+            df_fines_member.select(fines_overview_show_cols + extra_cols).sort(
+                "Bøde Dato", descending=True
+            ),
+            use_container_width=True,
+        )
+        if st.button("Opdater Bøde Status"):
+            update_fines(df_fines_member)
+    else:
+        st.warning("Vælg et medlem for at opdatere bøder")
 
 
 @st.dialog("Register Payment")
