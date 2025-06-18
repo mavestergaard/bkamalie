@@ -1,4 +1,4 @@
-from bkamalie.database.model import Payment
+from bkamalie.database.model import Payment, RecordedFine
 import polars as pl
 from psycopg2.extras import execute_values
 import psycopg2
@@ -98,8 +98,8 @@ def insert_recorded_fines(con: str, df: pl.DataFrame) -> None:
             execute_values(cursor, query, df.rows())
 
 
-def upsert_recorded_fines(con: str, df: pl.DataFrame) -> None:
-    query = """
+def get_upsert_recorded_fines_query() -> str:
+    return """
         INSERT INTO recorded_fines (id, fine_id, fixed_count, variable_count, holdbox_count, fined_member_id, fine_date, created_by_member_id, fine_status, updated_at, updated_by_member_id, total_fine, comment)
         VALUES %s
         ON CONFLICT (id) DO UPDATE
@@ -107,9 +107,29 @@ def upsert_recorded_fines(con: str, df: pl.DataFrame) -> None:
             updated_at = CURRENT_TIMESTAMP,
             updated_by_member_id = excluded.updated_by_member_id;
     """
+
+
+def upsert_recorded_fines(con: str, df: pl.DataFrame) -> None:
+    query = get_upsert_recorded_fines_query()
     with psycopg2.connect(con) as conn:
         with conn.cursor() as cursor:
             execute_values(cursor, query, df.rows())
+
+
+def upsert_recorded_fines_from_basemodel(
+    con: str, recorded_fines: list[RecordedFine]
+) -> None:
+    query = get_upsert_recorded_fines_query()
+    with psycopg2.connect(con) as conn:
+        with conn.cursor() as cursor:
+            execute_values(
+                cursor,
+                query,
+                [
+                    tuple(recorded_fine.dict().values())
+                    for recorded_fine in recorded_fines
+                ],
+            )
 
 
 def upsert_payments(con: str, df_payments: pl.DataFrame) -> None:
