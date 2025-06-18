@@ -7,6 +7,7 @@ from bkamalie.holdsport.api import verify_user
 from streamlit_cookies_controller import CookieController
 
 fines_overview_show_cols = [
+    pl.col("id"),
     pl.col("name_member").alias("Navn"),
     pl.col("name").alias("Bøde"),
     pl.col("total_fine").alias("Bøde Total"),
