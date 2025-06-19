@@ -151,14 +151,18 @@ def update_fines_new(
     for fine in recorded_fines:
         (
             col_fine_name,
+            col_comment,
             col_member_name,
             col_fine_counts,
             col_fine_amount,
             col_fine_status,
-        ) = st.columns([0.35, 0.25, 0.1, 0.1, 0.2])
+        ) = st.columns([0.35, 0.05, 0.25, 0.1, 0.1, 0.2])
         member_name = members_dict.get(fine.fined_member_id).strip()
         fine_name = fines_dict.get(fine.fine_id)
         col_fine_name.badge(f"**{fine_name}**", color="primary")
+        col_comment.caption(
+            "", help=f"Kommentar: {fine.comment}\n\n Dato: {fine.fine_date}"
+        )
         col_member_name.badge(f"**{member_name}**", color="primary")
         col_fine_counts.badge(
             f"F:{fine.fixed_count} V:{fine.variable_count}", color="primary"
@@ -219,15 +223,27 @@ with st.container(border=True):
 
 with st.container(border=True):
     st.subheader("Opdater Bøde Status")
-    selected_member = st.multiselect(
+    col1, col2 = st.columns(2)
+    selected_member = col1.multiselect(
         "Vælg Medlem",
         options=df_members["name"].to_list(),
         max_selections=1,
     )
+    fine_status_filter = col2.pills(
+        "Fine Status Filter",
+        options=FineStatus,
+        selection_mode="multi",
+        default=FineStatus,
+        key="member_fine_status_filter",
+    )
     if selected_member:
         df_fines_member = df_fine_overview.filter(
-            pl.col("name_member").is_in(selected_member)
+            pl.col("name_member").is_in(selected_member),
+            pl.col("fine_status").is_in(fine_status_filter),
         ).sort("fine_date", descending=True)
+        recorded_fines_member = [
+            RecordedFine(**row) for row in df_fines_member.to_dicts()
+        ]
         st.dataframe(
             df_fines_member.select(fines_overview_show_cols + extra_cols).sort(
                 "Bøde Dato", descending=True
@@ -235,7 +251,9 @@ with st.container(border=True):
             use_container_width=True,
         )
         if st.button("Opdater Bøde Status"):
-            update_fines(df_fines_member)
+            update_fines_new(
+                recorded_fines_member, df_members, df_fines, "updated_fine_status"
+            )
     else:
         st.warning("Vælg et medlem for at opdatere bøder")
 
@@ -344,7 +362,7 @@ with st.container(border=True):
         df_payments_grouped,
         left_on=["fined_member_id", "name_member"],
         right_on=["member_id", "name"],
-        how="outer",
+        how="full",
         coalesce=True,
     ).with_columns(cs.numeric().fill_null(0))
     df_overview = df_overview.with_columns(
