@@ -8,34 +8,26 @@ from bkamalie.holdsport.api import (
 import polars as pl
 from bkamalie.app.utils import (
     get_fines,
-    login,
-    render_page_links,
 )
 from bkamalie.database.utils import get_connection as get_db_connection
 import plotly.express as px
 from millify import millify
 
+st.logo("bkamalie/graphics/bka_logo.png")
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
 )
+db_config = st.secrets["db"]
+db_con = get_db_connection(db_config)
 members = [
     {"id": member.id, "name": member.name, "role": member.role.to_string()}
     for member in get_members(holdsport_con, 5289)
 ]
 df_members = pl.DataFrame(members)
-render_page_links()
 
+st.header("Bødekassen")
 
-st.title("Bødekassen")
-
-if not st.session_state.logged_in:
-    if st.button("Login", type="primary"):
-        login()
-    st.stop()
-
-db_config = st.secrets["db"]
-db_con = get_db_connection(db_config)
 with st.spinner("Loading data...", show_time=True):
     df_fines = get_fines(db_con)
     df_recorded_fines = pl.read_database_uri(

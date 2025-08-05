@@ -1,4 +1,3 @@
-from bkamalie.app.utils import login, render_page_links
 import streamlit as st
 from bkamalie.holdsport.api import (
     get_current_week_activities,
@@ -9,6 +8,8 @@ from bkamalie.holdsport.api import (
 
 import polars as pl
 
+st.logo("bkamalie/graphics/bka_logo.png")
+
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
 )
@@ -17,16 +18,8 @@ members = [
     for member in get_members(holdsport_con, 5289)
 ]
 df_members = pl.DataFrame(members)
-render_page_links()
 
-
-st.title("BK Amalie Dashboard")
-
-if not st.session_state.logged_in:
-    if st.button("Login", type="primary"):
-        login()
-    st.stop()
-
+st.header("BK Amalie Dashboard", divider=True)
 
 current_week_activities = get_current_week_activities(holdsport_con, 5289)
 

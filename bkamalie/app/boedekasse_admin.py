@@ -15,36 +15,13 @@ from datetime import date, datetime
 import polars as pl
 from bkamalie.app.utils import (
     get_fines,
-    login,
-    render_page_links,
     fines_overview_detail_cols,
     fines_overview_show_cols,
 )
 from bkamalie.database.utils import get_connection as get_db_connection
 import polars.selectors as cs
 
-holdsport_con = get_holdsport_connection(
-    st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
-)
-members = [
-    {"id": member.id, "name": member.name, "role": member.role.to_string()}
-    for member in get_members(holdsport_con, 5289)
-]
-df_members = pl.DataFrame(members)
-render_page_links()
-
-if not st.session_state.logged_in:
-    if st.button("Login", type="primary"):
-        login()
-    st.stop()
-
-if st.session_state.current_user_id not in [FINEBOX_ADMIN_MEMBER_ID, 1412409]:
-    st.warning("You do not have permission to access this page")
-    st.stop()
-
-
-st.title("Bødekassen Admin")
-
+st.logo("bkamalie/graphics/bka_logo.png")
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
@@ -56,6 +33,14 @@ members = [
     for member in get_members(holdsport_con, 5289)
 ]
 df_members = pl.DataFrame(members)
+
+if st.session_state.current_user_id not in [FINEBOX_ADMIN_MEMBER_ID, 1412409]:
+    st.warning("You do not have permission to access this page")
+    st.stop()
+
+
+st.title("Bødekassen Admin")
+
 with st.spinner("Loading data...", show_time=True):
     df_fines = get_fines(db_con)
     df_recorded_fines = pl.read_database_uri(

@@ -5,9 +5,10 @@ from bkamalie.holdsport.api import (
     get_connection as get_holdsport_connection,
 )
 import polars as pl
-from bkamalie.app.utils import _suggest_fines, get_fines, login, render_page_links
+from bkamalie.app.utils import _suggest_fines, get_fines
 from bkamalie.database.utils import get_connection as get_db_connection
-from streamlit_cookies_controller import CookieController
+
+st.logo("bkamalie/graphics/bka_logo.png")
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
@@ -17,19 +18,9 @@ members = [
     for member in get_members(holdsport_con, 5289)
 ]
 df_members = pl.DataFrame(members)
-render_page_links()
 
-st.title("Stikkerlinjen")
 
-controller = CookieController()
-
-login_status = controller.get("logged_in")
-
-if not login_status:
-    if st.button("Login", type="primary"):
-        login()
-    st.stop()
-
+st.header("Stikkerlinjen", divider=True)
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
