@@ -7,7 +7,7 @@ from bkamalie.holdsport.api import (
     get_connection as get_holdsport_connection,
 )
 import polars as pl
-from bkamalie.app.utils import get_fines, login, render_page_links
+from bkamalie.app.utils import get_fines
 from bkamalie.database.utils import get_connection as get_db_connection
 from datetime import datetime
 from bkamalie.css_styles.payment_card import (
@@ -16,27 +16,21 @@ from bkamalie.css_styles.payment_card import (
 )
 from bkamalie.app.model import DisplayPayment
 
-holdsport_con = get_holdsport_connection(
-    st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
-)
-members = [
-    {"id": member.id, "name": member.name, "role": member.role.to_string()}
-    for member in get_members(holdsport_con, 5289)
-]
-df_members = pl.DataFrame(members)
-render_page_links()
-st.title("Mine Bøder")
-
-if not st.session_state.logged_in:
-    if st.button("Login", type="primary"):
-        login()
-    st.stop()
-
+st.logo("bkamalie/graphics/bka_logo.png")
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
 )
 db_con = get_db_connection(st.secrets["db"])
+
+members = [
+    {"id": member.id, "name": member.name, "role": member.role.to_string()}
+    for member in get_members(holdsport_con, 5289)
+]
+df_members = pl.DataFrame(members)
+
+st.header("Mine Bøder", divider=True)
+
 df_fines = get_fines(db_con)
 df_recorded_fines = pl.read_database_uri(
     query="SELECT * FROM recorded_fines", uri=db_con
