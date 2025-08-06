@@ -6,6 +6,7 @@ from testcontainers.postgres import PostgresContainer
 import polars as pl
 from bkamalie.database.model import FineCategory, FineStatus, Payment
 import streamlit as st
+import os
 
 
 def pytest_addoption(parser):
@@ -23,9 +24,17 @@ def pytest_configure(config):
 
 @fixture(scope="session")
 def holdsport_con():
-    return get_connection(
-        st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
+    username = (
+        st.secrets["holdsport"]["username"]
+        if "holdsport" in st.secrets
+        else os.getenv("HOLDSPORT_USERNAME")
     )
+    password = (
+        st.secrets["holdsport"]["password"]
+        if "holdsport" in st.secrets
+        else os.getenv("HOLDSPORT_PASSWORD")
+    )
+    return get_connection(username, password)
 
 
 @fixture(scope="session")
