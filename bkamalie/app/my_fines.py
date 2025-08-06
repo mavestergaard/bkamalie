@@ -1,13 +1,14 @@
 from bkamalie.database.execute import insert_payment
 from bkamalie.database.model import FineStatus, Payment
 import streamlit as st
+from streamlit import session_state as ss
 from bkamalie.holdsport.api import (
     FINEBOX_ADMIN_MEMBER_ID,
     get_members,
     get_connection as get_holdsport_connection,
 )
 import polars as pl
-from bkamalie.app.utils import get_fines
+from bkamalie.app.utils import get_fines, set_session_state_from_cookies
 from bkamalie.database.utils import get_connection as get_db_connection
 from datetime import datetime
 from bkamalie.css_styles.payment_card import (
@@ -17,6 +18,8 @@ from bkamalie.css_styles.payment_card import (
 from bkamalie.app.model import DisplayPayment
 
 st.logo("bkamalie/graphics/bka_logo.png")
+
+set_session_state_from_cookies()
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
@@ -37,7 +40,7 @@ df_recorded_fines = pl.read_database_uri(
 )
 df_payments = (
     pl.read_database_uri(query="SELECT * FROM payments", uri=db_con)
-    .filter(member_id=st.session_state.current_user_id)
+    .filter(member_id=ss.current_user_id)
     .join(df_members, left_on="member_id", right_on="id", how="left", suffix="_member")
     .rename({"name": "member_name"})
 )
@@ -61,7 +64,7 @@ df_fine_overview = (
         suffix="_stikker",
     )
     .filter(
-        fined_member_id=st.session_state.current_user_id,
+        fined_member_id=ss.current_user_id,
     )
 )
 
@@ -96,14 +99,12 @@ def pay_fines(db_con, total_udestående, df_members):
     )
     st.metric("Nuværende Udestående", value=total_udestående, border=True)
     disabled = (
-        False
-        if st.session_state.current_user_id in [FINEBOX_ADMIN_MEMBER_ID, 1412409]
-        else True
+        False if ss.current_user_id in [FINEBOX_ADMIN_MEMBER_ID, 1412409] else True
     )
     selected_member = st.multiselect(
         "Navn",
         options=df_members["name"],
-        default=st.session_state.current_user_full_name,
+        default=ss.current_user_full_name,
         disabled=disabled,
         max_selections=1,
     )

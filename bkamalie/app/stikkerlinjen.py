@@ -1,14 +1,17 @@
 from bkamalie.database.model import FineStatus
 import streamlit as st
+from streamlit import session_state as ss
 from bkamalie.holdsport.api import (
     get_members,
     get_connection as get_holdsport_connection,
 )
 import polars as pl
-from bkamalie.app.utils import _suggest_fines, get_fines
+from bkamalie.app.utils import _suggest_fines, get_fines, set_session_state_from_cookies
 from bkamalie.database.utils import get_connection as get_db_connection
 
 st.logo("bkamalie/graphics/bka_logo.png")
+
+set_session_state_from_cookies()
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
@@ -82,7 +85,7 @@ def suggest_fines(db_con, df_members, df_fines):
                 count_variable=number_of_fines_variable,
                 count_holdbox=number_of_holdboxe,
                 df_members=df_members,
-                suggested_by_user_id=st.session_state.current_user_id,
+                suggested_by_user_id=ss.current_user_id,
                 comment=comment,
             )
             st.success("Fine suggested")

@@ -5,6 +5,9 @@ import polars as pl
 import streamlit as st
 from bkamalie.holdsport.api import verify_user
 from streamlit_cookies_controller import CookieController
+from time import sleep
+from streamlit import session_state as ss
+
 
 fines_overview_show_cols = [
     pl.col("id"),
@@ -151,3 +154,13 @@ def _suggest_fines(
         insert_recorded_fines(db_con, df_recorded_fines)
     except Exception as e:
         raise e
+
+
+def set_session_state_from_cookies() -> None:
+    controller = CookieController()
+    sleep(0.5)
+    login_status = controller.get("logged_in")
+    if login_status:
+        ss.logged_in = True
+        ss.current_user_id = controller.get("current_user_id")
+        ss.current_user_full_name = controller.get("current_user_full_name")

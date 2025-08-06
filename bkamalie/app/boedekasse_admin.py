@@ -17,11 +17,14 @@ from bkamalie.app.utils import (
     get_fines,
     fines_overview_detail_cols,
     fines_overview_show_cols,
+    set_session_state_from_cookies,
 )
 from bkamalie.database.utils import get_connection as get_db_connection
 import polars.selectors as cs
 
 st.logo("bkamalie/graphics/bka_logo.png")
+
+set_session_state_from_cookies()
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
