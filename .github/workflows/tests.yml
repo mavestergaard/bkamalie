@@ -1,0 +1,32 @@
+name: Lint and Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Hatch
+        run: pip install hatch
+
+      - name: Run lint
+        run: hatch run lint:run
+
+      - name: Run tests
+        env:
+          HOLDSPORT_USERNAME: ${{ secrets.HOLDSPORT_USERNAME }}
+          HOLDSPORT_PASSWORD: ${{ secrets.HOLDSPORT_PASSWORD }}
+        run: hatch run test:base

@@ -1,10 +1,12 @@
+from datetime import date
 from bkamalie.database.execute import create_tables, insert_fines
 from bkamalie.holdsport.api import get_connection
 from pytest import fixture
 from testcontainers.postgres import PostgresContainer
 import polars as pl
-from bkamalie.database.model import FineCategory
+from bkamalie.database.model import FineCategory, FineStatus, Payment
 import streamlit as st
+import os
 
 
 def pytest_addoption(parser):
@@ -22,9 +24,17 @@ def pytest_configure(config):
 
 @fixture(scope="session")
 def holdsport_con():
-    return get_connection(
-        st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
+    username = (
+        os.getenv("HOLDSPORT_USERNAME")
+        if os.getenv("CI")
+        else st.secrets["holdsport"]["username"]
     )
+    password = (
+        os.getenv("HOLDSPORT_PASSWORD")
+        if os.getenv("CI")
+        else st.secrets["holdsport"]["password"]
+    )
+    return get_connection(username, password)
 
 
 @fixture(scope="session")
@@ -64,6 +74,17 @@ def df_members():
         "role": ["player", "player", "player", "player"],
     }
     return pl.DataFrame(data_input)
+
+
+@fixture(scope="session")
+def payment():
+    return Payment(
+        id=None,
+        member_id=22,
+        amount=100,
+        payment_date=date(2023, 10, 1),
+        payment_status=FineStatus.PENDING,
+    )
 
 
 postgres = PostgresContainer("postgres:16-alpine")
