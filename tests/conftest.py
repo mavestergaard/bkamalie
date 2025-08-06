@@ -25,14 +25,14 @@ def pytest_configure(config):
 @fixture(scope="session")
 def holdsport_con():
     username = (
-        st.secrets["holdsport"]["username"]
-        if "holdsport" in st.secrets
-        else os.getenv("HOLDSPORT_USERNAME")
+        os.getenv("HOLDSPORT_USERNAME")
+        if os.getenv("CI")
+        else st.secrets["holdsport"]["username"]
     )
     password = (
-        st.secrets["holdsport"]["password"]
-        if "holdsport" in st.secrets
-        else os.getenv("HOLDSPORT_PASSWORD")
+        os.getenv("HOLDSPORT_PASSWORD")
+        if os.getenv("CI")
+        else st.secrets["holdsport"]["password"]
     )
     return get_connection(username, password)
 
