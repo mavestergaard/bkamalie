@@ -4,6 +4,7 @@ from bkamalie.database.execute import insert_recorded_fines
 from bkamalie.database.model import FineStatus, RecordedFine
 import polars as pl
 import streamlit as st
+from streamlit.errors import StreamlitSecretNotFoundError
 from bkamalie.holdsport.api import verify_user
 from streamlit_cookies_controller import CookieController
 import os
@@ -164,5 +165,5 @@ def get_secret(secret_name: str) -> Any:
     st_secret_type, st_secret_name = secret_name.split("_")
     try:
         return st.secrets[st_secret_type][st_secret_name]
-    except KeyError:
+    except StreamlitSecretNotFoundError:
         return os.getenv(secret_name, None)
