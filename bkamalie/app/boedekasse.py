@@ -1,6 +1,5 @@
 import streamlit as st
 from bkamalie.holdsport.api import (
-    MENS_TEAM_ID,
     FINEBOX_ADMIN_MEMBER_ID,
     get_members,
     get_connection as get_holdsport_connection,
@@ -12,6 +11,7 @@ from bkamalie.app.utils import (
 from bkamalie.database.utils import get_connection as get_db_connection
 import plotly.express as px
 from millify import millify
+from streamlit import session_state as ss
 
 st.logo("bkamalie/graphics/bka_logo.png")
 
@@ -22,24 +22,28 @@ db_config = st.secrets["db"]
 db_con = get_db_connection(db_config)
 members = [
     {"id": member.id, "name": member.name, "role": member.role.to_string()}
-    for member in get_members(holdsport_con, 5289)
+    for member in get_members(holdsport_con, ss.selected_team_id)
 ]
 df_members = pl.DataFrame(members)
 
 st.header("Bødekassen")
 
 with st.spinner("Loading data...", show_time=True):
-    df_fines = get_fines(db_con)
+    df_fines = get_fines(db_con, ss.selected_team_id)
     df_recorded_fines = pl.read_database_uri(
-        query="SELECT * FROM recorded_fines", uri=db_con
+        query=f"SELECT * FROM recorded_fines where team_id = {ss.selected_team_id}",
+        uri=db_con,
     )
-    df_payments = pl.read_database_uri(query="SELECT * FROM payments", uri=db_con)
+    df_payments = pl.read_database_uri(
+        query=f"SELECT * FROM payments where team_id = {ss.selected_team_id}",
+        uri=db_con,
+    )
     holdsport_con = get_holdsport_connection(
         st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
     )
     members = [
         {"id": member.id, "name": member.name, "role": member.role.to_string()}
-        for member in get_members(holdsport_con, MENS_TEAM_ID)
+        for member in get_members(holdsport_con, ss.selected_team_id)
     ]
     df_members = pl.DataFrame(members)
 

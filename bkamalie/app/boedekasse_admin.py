@@ -17,14 +17,12 @@ from bkamalie.app.utils import (
     get_fines,
     fines_overview_detail_cols,
     fines_overview_show_cols,
-    set_session_state_from_cookies,
 )
 from bkamalie.database.utils import get_connection as get_db_connection
 import polars.selectors as cs
+from streamlit import session_state as ss
 
 st.logo("bkamalie/graphics/bka_logo.png")
-
-set_session_state_from_cookies()
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
@@ -33,7 +31,7 @@ db_con = get_db_connection(st.secrets["db"])
 
 members = [
     {"id": member.id, "name": member.name, "role": member.role.to_string()}
-    for member in get_members(holdsport_con, 5289)
+    for member in get_members(holdsport_con, ss.selected_team_id)
 ]
 df_members = pl.DataFrame(members)
 
@@ -45,11 +43,15 @@ if st.session_state.current_user_id not in [FINEBOX_ADMIN_MEMBER_ID, 1412409]:
 st.title("Bødekassen Admin")
 
 with st.spinner("Loading data...", show_time=True):
-    df_fines = get_fines(db_con)
+    df_fines = get_fines(db_con, ss.selected_team_id)
     df_recorded_fines = pl.read_database_uri(
-        query="SELECT * FROM recorded_fines", uri=db_con
+        query=f"SELECT * FROM recorded_fines where team_id = {ss.selected_team_id}",
+        uri=db_con,
     )
-    df_payments = pl.read_database_uri(query="SELECT * FROM payments", uri=db_con)
+    df_payments = pl.read_database_uri(
+        query=f"SELECT * FROM payments where team_id = {ss.selected_team_id}",
+        uri=db_con,
+    )
 
 df_payments = df_payments.join(
     df_members, left_on="member_id", right_on="id", how="left", suffix="_member"
@@ -294,6 +296,7 @@ with st.container(border=True):
                     amount=new_amount,
                     payment_date=new_date,
                     payment_status=new_status,
+                    team_id=row["team_id"],
                 )
             )
         st.divider()

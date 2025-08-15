@@ -5,8 +5,6 @@ import polars as pl
 import streamlit as st
 from bkamalie.holdsport.api import verify_user
 from streamlit_cookies_controller import CookieController
-from time import sleep
-from streamlit import session_state as ss
 
 
 fines_overview_show_cols = [
@@ -107,8 +105,10 @@ def replace_id_with_name(
 
 
 @st.cache_data(ttl=300)
-def get_fines(db_con: str) -> pl.DataFrame:
-    return pl.read_database_uri(query="SELECT * FROM fine", uri=db_con)
+def get_fines(db_con: str, team_id: int = None) -> pl.DataFrame:
+    return pl.read_database_uri(
+        query=f"SELECT * FROM fine where team_id = {team_id}", uri=db_con
+    )
 
 
 def _suggest_fines(
@@ -122,6 +122,7 @@ def _suggest_fines(
     df_members: pl.DataFrame,
     suggested_by_user_id: int,
     comment: str,
+    team_id: int,
 ) -> None:
     df_selected_fine = df_fines.filter(name=selected_fine[0])
     fine_id = df_selected_fine["id"][0]
@@ -146,6 +147,7 @@ def _suggest_fines(
                 updated_by_member_id=suggested_by_user_id,
                 total_fine=total_fine_amount,
                 comment=comment,
+                team_id=team_id,
             )
             for member_id in member_ids
         ]
@@ -154,13 +156,3 @@ def _suggest_fines(
         insert_recorded_fines(db_con, df_recorded_fines)
     except Exception as e:
         raise e
-
-
-def set_session_state_from_cookies() -> None:
-    controller = CookieController()
-    sleep(0.5)
-    login_status = controller.get("logged_in")
-    if login_status:
-        ss.logged_in = True
-        ss.current_user_id = controller.get("current_user_id")
-        ss.current_user_full_name = controller.get("current_user_full_name")

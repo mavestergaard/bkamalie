@@ -6,19 +6,17 @@ from bkamalie.holdsport.api import (
     get_connection as get_holdsport_connection,
 )
 import polars as pl
-from bkamalie.app.utils import _suggest_fines, get_fines, set_session_state_from_cookies
+from bkamalie.app.utils import _suggest_fines, get_fines
 from bkamalie.database.utils import get_connection as get_db_connection
 
 st.logo("bkamalie/graphics/bka_logo.png")
-
-set_session_state_from_cookies()
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
 )
 members = [
     {"id": member.id, "name": member.name, "role": member.role.to_string()}
-    for member in get_members(holdsport_con, 5289)
+    for member in get_members(holdsport_con, ss.selected_team_id)
 ]
 df_members = pl.DataFrame(members)
 
@@ -29,9 +27,10 @@ holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
 )
 db_con = get_db_connection(st.secrets["db"])
-df_fines = get_fines(db_con)
+df_fines = get_fines(db_con, ss.selected_team_id)
 df_recorded_fines = pl.read_database_uri(
-    query="SELECT * FROM recorded_fines", uri=db_con
+    query=f"SELECT * FROM recorded_fines where team_id = {ss.selected_team_id}",
+    uri=db_con,
 )
 df_fine_overview = (
     df_recorded_fines.join(df_fines, left_on="fine_id", right_on="id", how="left")
@@ -87,6 +86,7 @@ def suggest_fines(db_con, df_members, df_fines):
                 df_members=df_members,
                 suggested_by_user_id=ss.current_user_id,
                 comment=comment,
+                team_id=ss.selected_team_id,
             )
             st.success("Fine suggested")
             st.rerun()
@@ -189,6 +189,11 @@ st.markdown("<div class='card-container'>", unsafe_allow_html=True)
 selection = st.pills("Fine Status", FineStatus, selection_mode="multi")
 if selection:
     df_fine_overview = df_fine_overview.filter(pl.col("fine_status").is_in(selection))
+
+if len(df_fine_overview) == 0:
+    st.warning("No fines found for current selection.")
+    st.stop()
+
 for row in df_fine_overview.sort(
     ["fine_date", "updated_at"], descending=True
 ).to_dicts():
