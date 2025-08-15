@@ -3,9 +3,9 @@ from bkamalie.holdsport.api import get_current_week_activities, get_teams, get_m
 
 def test_get_teams(holdsport_con):
     teams = get_teams(holdsport_con)
-    assert len(teams) == 3 != None
+    assert len(teams) == 4
     team_ids = [team["id"] for team in teams]
-    assert team_ids == [5289, 53781, 55219]
+    assert team_ids == [5289, 53781, 55219, 649608]
 
 
 def test_get_activities(holdsport_con):

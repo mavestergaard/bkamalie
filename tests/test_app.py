@@ -16,6 +16,9 @@ def test_suggest_fines(db_mock, df_members, df_fines):
         df_members=df_members,
         suggested_by_user_id=3,
         comment="Traing week 12",
+        team_id=999,
     )
-    df = pl.read_database_uri(query="SELECT * FROM recorded_fines", uri=db_con)
+    df = pl.read_database_uri(
+        query="SELECT * FROM recorded_fines where team_id=999", uri=db_con
+    )
     assert len(df) == 2
