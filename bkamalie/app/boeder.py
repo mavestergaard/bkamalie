@@ -1,8 +1,11 @@
-from bkamalie.app.utils import get_fines
+from bkamalie.app.utils import get_fines, get_secret
 from bkamalie.database.execute import insert_fines
 import streamlit as st
 import polars as pl
-from bkamalie.database.utils import get_connection as get_db_connection
+from bkamalie.database.utils import (
+    get_connection as get_db_connection,
+    get_db_config_from_secrets,
+)
 from bkamalie.holdsport.api import (
     get_members,
     get_connection as get_holdsport_connection,
@@ -12,7 +15,7 @@ from streamlit import session_state as ss
 st.logo("bkamalie/graphics/bka_logo.png")
 
 holdsport_con = get_holdsport_connection(
-    st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
+    get_secret("holdsport_username"), get_secret("holdsport_password")
 )
 members = [
     {"id": member.id, "name": member.name, "role": member.role.to_string()}
@@ -20,7 +23,7 @@ members = [
 ]
 df_members = pl.DataFrame(members)
 
-db_config = st.secrets["db"]
+db_config = get_db_config_from_secrets()
 db_con = get_db_connection(db_config)
 
 st.header("Bøde Oversigt", divider=True)

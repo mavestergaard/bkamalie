@@ -8,8 +8,11 @@ from bkamalie.holdsport.api import (
     get_connection as get_holdsport_connection,
 )
 import polars as pl
-from bkamalie.app.utils import get_fines
-from bkamalie.database.utils import get_connection as get_db_connection
+from bkamalie.app.utils import get_fines, get_secret
+from bkamalie.database.utils import (
+    get_connection as get_db_connection,
+    get_db_config_from_secrets,
+)
 from datetime import datetime
 from bkamalie.css_styles.payment_card import (
     get_payment_card_style,
@@ -22,9 +25,10 @@ st.logo("bkamalie/graphics/bka_logo.png")
 
 
 holdsport_con = get_holdsport_connection(
-    st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
+    get_secret("holdsport_username"), get_secret("holdsport_password")
 )
-db_con = get_db_connection(st.secrets["db"])
+db_config = get_db_config_from_secrets()
+db_con = get_db_connection(db_config)
 
 members = [
     {"id": member.id, "name": member.name, "role": member.role.to_string()}

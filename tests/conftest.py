@@ -1,11 +1,11 @@
 from datetime import date
+from bkamalie.app.utils import get_secret
 from bkamalie.database.execute import create_tables, insert_fines
 from bkamalie.holdsport.api import get_connection
 from pytest import fixture
 from testcontainers.postgres import PostgresContainer
 import polars as pl
 from bkamalie.database.model import FineCategory, FineStatus, Payment
-import streamlit as st
 import os
 
 
@@ -27,12 +27,12 @@ def holdsport_con():
     username = (
         os.getenv("HOLDSPORT_USERNAME")
         if os.getenv("CI")
-        else st.secrets["holdsport"]["username"]
+        else get_secret("holdsport_username")
     )
     password = (
         os.getenv("HOLDSPORT_PASSWORD")
         if os.getenv("CI")
-        else st.secrets["holdsport"]["password"]
+        else get_secret("holdsport_password")
     )
     return get_connection(username, password)
 

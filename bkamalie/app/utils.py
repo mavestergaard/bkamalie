@@ -1,11 +1,12 @@
 from datetime import date, datetime
+from typing import Any
 from bkamalie.database.execute import insert_recorded_fines
 from bkamalie.database.model import FineStatus, RecordedFine
 import polars as pl
 import streamlit as st
 from bkamalie.holdsport.api import verify_user
 from streamlit_cookies_controller import CookieController
-
+import os
 
 fines_overview_show_cols = [
     pl.col("id"),
@@ -156,3 +157,12 @@ def _suggest_fines(
         insert_recorded_fines(db_con, df_recorded_fines)
     except Exception as e:
         raise e
+
+
+def get_secret(secret_name: str) -> Any:
+    """Tries to get a secret from either .streamlit/secrets.toml or environment variables."""
+    st_secret_type, st_secret_name = secret_name.split("_")
+    try:
+        return st.secrets[st_secret_type][st_secret_name]
+    except KeyError:
+        return os.getenv(secret_name, None)
