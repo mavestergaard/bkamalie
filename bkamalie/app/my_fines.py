@@ -8,7 +8,7 @@ from bkamalie.holdsport.api import (
     get_connection as get_holdsport_connection,
 )
 import polars as pl
-from bkamalie.app.utils import get_fines, set_session_state_from_cookies
+from bkamalie.app.utils import get_fines
 from bkamalie.database.utils import get_connection as get_db_connection
 from datetime import datetime
 from bkamalie.css_styles.payment_card import (
@@ -17,9 +17,9 @@ from bkamalie.css_styles.payment_card import (
 )
 from bkamalie.app.model import DisplayPayment
 
+
 st.logo("bkamalie/graphics/bka_logo.png")
 
-set_session_state_from_cookies()
 
 holdsport_con = get_holdsport_connection(
     st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
@@ -28,18 +28,22 @@ db_con = get_db_connection(st.secrets["db"])
 
 members = [
     {"id": member.id, "name": member.name, "role": member.role.to_string()}
-    for member in get_members(holdsport_con, 5289)
+    for member in get_members(holdsport_con, ss.selected_team_id)
 ]
 df_members = pl.DataFrame(members)
 
 st.header("Mine Bøder", divider=True)
 
-df_fines = get_fines(db_con)
+df_fines = get_fines(db_con, ss.selected_team_id)
 df_recorded_fines = pl.read_database_uri(
-    query="SELECT * FROM recorded_fines", uri=db_con
+    query=f"SELECT * FROM recorded_fines where team_id = {ss.selected_team_id}",
+    uri=db_con,
 )
 df_payments = (
-    pl.read_database_uri(query="SELECT * FROM payments", uri=db_con)
+    pl.read_database_uri(
+        query=f"SELECT * FROM payments where team_id = {ss.selected_team_id}",
+        uri=db_con,
+    )
     .filter(member_id=ss.current_user_id)
     .join(df_members, left_on="member_id", right_on="id", how="left", suffix="_member")
     .rename({"name": "member_name"})

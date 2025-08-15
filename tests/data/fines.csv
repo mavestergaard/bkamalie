@@ -1,0 +1,30 @@
+name,fixed_amount,variable_amount,holdbox_amount,description,category,team_id
+Udeblivelse fra træning,30,0,0,,Training,53781
+Ingen tilmeldning/afbud til træning,20,0,0,Seneste 24 timer før træning,Training,53781
+Møde for sent til træning,20,2,0,Start gebyr plus 2 pr minut,Training,53781
+Udeblivelse fra kamp,100,0,0,,Match,53781
+Ingen tilmeldning/afbud til kamp,35,0,0,Senest 3 dage før kamp,Match,53781
+Møde for sent til kamp,35,5,0,Start gebyr plus 5 kr pr minut ,Match,53781
+Gult kort,25,0,0,,Match,53781
+Rødt kort,50,0,0,,Match,53781
+Begået straffe,25,0,0,,Match,53781
+Brændt straffe,30,0,0,,Match,53781
+Tabt kamp plus mål,20,5,0,Startgebyr plus 5 kr pr mål modstander scorer,Match,53781
+Modstander mål,0,5,0,I vundet eller uafgjort kampe 5 kr pr mål modstanderen scorer,Match,53781
+Min 1 tøjvask,50,0,0,Hvis man ikke har vasket spillertøjet mindst en gang i løbet af sæsonen,Other,53781
+Aflever spilledragt forkert,20,0,0,Pr del som bliver afleveret forkert,Match,53781
+Manipulation af kampens spiller,30,0,0,Eller forsøg herpå,Match,53781
+Glemt genstand til kamp/træning,20,0,0,Pr del,Match,53781
+Kysse iført spillerdragt,20,0,0,,Match,53781
+Kysse andet BK medlem,20,0,0,Pr gang til hhv træning/kamp/sociale event,Other,53781
+Bar røv på bænk,20,0,0,,Other,53781
+Hamstring af drikkevare,20,0,0,Tag en ny før man har drukket ud,Other,53781
+Ølspild,20,0,0,,Other,53781
+Dekadence,20,0,0,Konkret vurdering ved dekadent opførelse,Other,53781
+Manglede betaling til bødekasse,10,0,0,Pr dag,Other,53781
+Skylder mindst ved sæsonafslutning,200,0,0,,Other,53781
+Råber af træner under kamp/træning,25,0,0,,Match,53781
+Brok til bødekassemester,20,0,0,Kan gives for dumme bemærkninger eller brok,Other,53781
+Bagstiv eller tømmermænd,50,0,0,Synligt bagstiv eller tømmermænd,Match,53781
+Hooket op,50,0,0,Knaldet med en anden BK spiller,Other,53781
+Usportslig påklædning,20,0,0,Møde op i trænnigstøj og høje hæle,Other,53781

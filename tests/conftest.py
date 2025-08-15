@@ -62,6 +62,7 @@ def df_fines():
             FineCategory.TRAINING.value,
             FineCategory.OTHER.value,
         ],
+        "team_id": [999, 999, 999, 999],
     }
     return pl.DataFrame(data_input)
 
@@ -84,6 +85,7 @@ def payment():
         amount=100,
         payment_date=date(2023, 10, 1),
         payment_status=FineStatus.PENDING,
+        team_id=999,
     )
 
 

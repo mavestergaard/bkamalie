@@ -1,4 +1,4 @@
-from bkamalie.database.model import Payment, RecordedFine
+from bkamalie.database.model import Fine, Payment, RecordedFine
 import polars as pl
 from psycopg2.extras import execute_values
 import psycopg2
@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS fine (
     variable_amount INTEGER NOT NULL,
     holdbox_amount INTEGER NOT NULL,
     description TEXT,
-    category fine_category NOT NULL
+    category fine_category NOT NULL,
+    team_id INTEGER NOT NULL
 );
 
 -- Payments table
@@ -29,7 +30,8 @@ CREATE TABLE IF NOT EXISTS payments (
     member_id INTEGER NOT NULL,
     amount INTEGER NOT NULL,
     payment_date TIMESTAMP NOT NULL,
-    payment_status fine_status NOT NULL
+    payment_status fine_status NOT NULL,
+    team_id INTEGER NOT NULL
 );
 
 -- RecordedFines table
@@ -47,6 +49,7 @@ CREATE TABLE IF NOT EXISTS recorded_fines (
     updated_by_member_id INTEGER NOT NULL,
     total_fine INTEGER NOT NULL,
     comment TEXT,
+    team_id INTEGER NOT NULL,
     CONSTRAINT fk_fine FOREIGN KEY (fine_id) REFERENCES fine(id)
 );
 """
@@ -66,31 +69,41 @@ def create_tables(con: str) -> None:
 def insert_payment(con: str, payment: Payment) -> None:
     execute_query(
         con,
-        "INSERT INTO payments (member_id, amount, payment_date, payment_status) VALUES (%s, %s, %s, %s)",
+        "INSERT INTO payments (member_id, amount, payment_date, payment_status, team_id) VALUES (%s, %s, %s, %s, %s)",
         (
             payment.member_id,
             payment.amount,
             payment.payment_date,
             payment.payment_status,
+            payment.team_id,
         ),
     )
 
 
 def insert_fines(con: str, df: pl.DataFrame) -> None:
     query = """
-        INSERT INTO fine (name, fixed_amount, variable_amount, holdbox_amount, description, category)
+        INSERT INTO fine (name, fixed_amount, variable_amount, holdbox_amount, description, category, team_id)
         VALUES %s;
     """
+    validated_fines = [Fine(**fine) for fine in df.to_dicts()]
     with psycopg2.connect(con) as conn:
         with conn.cursor() as cursor:
-            execute_values(cursor, query, df.rows())
+            execute_values(
+                cursor,
+                query,
+                [
+                    tuple(validated_fine.model_dump(exclude="id").values())
+                    for validated_fine in validated_fines
+                ],
+            )
+            pass
 
 
 def insert_recorded_fines(con: str, df: pl.DataFrame) -> None:
     if "id" in df.columns:
         df = df.drop("id")
     query = """
-        INSERT INTO recorded_fines (fine_id, fixed_count, variable_count, holdbox_count, fined_member_id, fine_date, created_by_member_id, fine_status, updated_at, updated_by_member_id, total_fine, comment)
+        INSERT INTO recorded_fines (fine_id, fixed_count, variable_count, holdbox_count, fined_member_id, fine_date, created_by_member_id, fine_status, updated_at, updated_by_member_id, total_fine, comment, team_id)
         VALUES %s
     """
     with psycopg2.connect(con) as conn:
@@ -100,7 +113,7 @@ def insert_recorded_fines(con: str, df: pl.DataFrame) -> None:
 
 def get_upsert_recorded_fines_query() -> str:
     return """
-        INSERT INTO recorded_fines (id, fine_id, fixed_count, variable_count, holdbox_count, fined_member_id, fine_date, created_by_member_id, fine_status, updated_at, updated_by_member_id, total_fine, comment)
+        INSERT INTO recorded_fines (id, fine_id, fixed_count, variable_count, holdbox_count, fined_member_id, fine_date, created_by_member_id, fine_status, updated_at, updated_by_member_id, total_fine, comment, team_id)
         VALUES %s
         ON CONFLICT (id) DO UPDATE
             SET fine_status  = excluded.fine_status,
@@ -134,7 +147,7 @@ def upsert_recorded_fines_from_basemodel(
 
 def upsert_payments(con: str, df_payments: pl.DataFrame) -> None:
     query = """
-        INSERT INTO payments (id, member_id, amount, payment_date, payment_status)
+        INSERT INTO payments (id, member_id, amount, payment_date, payment_status, team_id)
         VALUES %s
         ON CONFLICT (id) DO UPDATE
             SET amount = excluded.amount,

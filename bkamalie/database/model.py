@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime, date
-from enum import StrEnum
+from enum import StrEnum, Enum
 
 
 class FineStatus(StrEnum):
@@ -15,14 +15,21 @@ class FineCategory(StrEnum):
     OTHER = "Other"
 
 
+class Teams(Enum):
+    BOLDKLUBBEN_AMALIE = 5289  # Mens Team
+    AMALIE_KVINDER = 53781
+    AMALIE_OLD_BOYS = 649608
+
+
 class Fine(BaseModel):
-    id: int | None
+    id: int | None = None
     name: str
     fixed_amount: int
-    varible_amount: int
+    variable_amount: int
     holdbox_amount: int
-    description: str
+    description: str | None
     category: FineCategory
+    team_id: int
 
 
 class Payment(BaseModel):
@@ -31,6 +38,7 @@ class Payment(BaseModel):
     amount: int
     payment_date: datetime
     payment_status: FineStatus
+    team_id: int
 
 
 class RecordedFine(BaseModel):
@@ -47,8 +55,14 @@ class RecordedFine(BaseModel):
     updated_by_member_id: int
     total_fine: int
     comment: str | None
+    team_id: int
 
 
 class User(BaseModel):
     id: int | None
     full_name: str
+
+
+class Team(BaseModel):
+    id: int
+    name: str
