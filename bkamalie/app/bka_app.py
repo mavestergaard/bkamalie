@@ -1,26 +1,40 @@
-from bkamalie.holdsport.api import verify_user
+from typing import Any
+from bkamalie.holdsport.api import get_available_teams, verify_user
 import streamlit as st
 from streamlit_cookies_controller import CookieController
 from time import sleep
+from streamlit import session_state as ss
 
 controller = CookieController()
-sleep(1)
-login_status = controller.get("logged_in")
+sleep(0.5)
 
-if login_status:
-    st.session_state.logged_in = True
-else:
-    st.session_state.logged_in = False
+
+def set_session_state_from_cookies(cookies: dict[str, Any]) -> None:
+    ss.logged_in = cookies.get("logged_in")
+    ss.current_user_id = cookies.get("current_user_id")
+    ss.current_user_full_name = cookies.get("current_user_full_name")
+    ss.available_teams = cookies.get("available_teams")
+
+
+def set_cookies(
+    logged_in: bool,
+    current_user_id: int,
+    current_user_full_name: str,
+    available_teams: dict[str, int],
+) -> dict:
+    cookies = CookieController()
+    cookies.set("logged_in", logged_in)
+    cookies.set("current_user_id", current_user_id)
+    cookies.set("current_user_full_name", current_user_full_name)
+    cookies.set("available_teams", available_teams)
+    return cookies
 
 
 @st.dialog("Login")
 def login() -> None:
-    if login_status:
-        st.session_state.logged_in = True
-        st.session_state.current_user_id = controller.get("current_user_id")
-        st.session_state.current_user_full_name = controller.get(
-            "current_user_full_name"
-        )
+    current_cookies = CookieController()
+    if current_cookies.get("logged_in"):
+        set_session_state_from_cookies(current_cookies)
     else:
         st.info("Please login using your Holdsport credentials")
         username = st.text_input("Email", autocomplete="email")
@@ -28,16 +42,18 @@ def login() -> None:
         if st.button("Submit"):
             current_user = verify_user(username, password)
             if current_user:
+                available_teams = get_available_teams(username, password)
+                available_teams_dict = {team.name: team.id for team in available_teams}
                 st.success("Login successful")
-                st.session_state.logged_in = True
-                st.session_state.current_user_id = current_user.id
-                st.session_state.current_user_full_name = current_user.full_name
-                controller.set("current_user_id", current_user.id)
-                controller.set("current_user_full_name", current_user.full_name)
-                controller.set("logged_in", True)
+                updated_cookies = set_cookies(
+                    logged_in=True,
+                    current_user_id=current_user.id,
+                    current_user_full_name=current_user.full_name,
+                    available_teams=available_teams_dict,
+                )
+                set_session_state_from_cookies(updated_cookies)
             else:
                 st.error("Login failed")
-
             st.rerun()
 
 
@@ -47,6 +63,7 @@ def logout():
         controller.remove("logged_in")
         controller.remove("current_user_id")
         controller.remove("current_user_full_name")
+        controller.remove("available_teams")
         st.success("Logged out successfully")
         st.rerun()
 
@@ -91,7 +108,14 @@ boedekasse_admin = st.Page(
     icon="👮‍♂️",
 )
 
-if st.session_state.logged_in:
+if controller.get("logged_in"):
+    set_session_state_from_cookies(controller)
+    selected_team = st.sidebar.selectbox(
+        "Vælg Hold", list(ss.available_teams.keys()), key="selected_team"
+    )
+    st.sidebar.write("Logged in as:", ss.current_user_full_name)
+    st.sidebar.write("User ID:", ss.current_user_id)
+    ss.selected_team_id = ss.available_teams.get(selected_team, None)
     pg = st.navigation(
         {
             "Fines": [stikkerlinjen, my_fines, boedekasse, boeder],
