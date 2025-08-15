@@ -1,11 +1,12 @@
 import requests
 from datetime import date, datetime, timedelta
-from bkamalie.database.model import User
+from bkamalie.database.model import Team, User
 from pydantic import BaseModel
 from enum import StrEnum, Enum
 
 MENS_TEAM_ID = 5289
 FINEBOX_ADMIN_MEMBER_ID = 1053833
+FINEBOX_ADMIN_MEMBER_ID_WOMEN = 452163
 
 
 class TeamLevel(StrEnum):
@@ -75,6 +76,18 @@ def verify_user(user_name: str, password: str) -> User | None:
             + " "
             + response.json().get("lastname"),
         )
+        if response.status_code == 200
+        else None
+    )
+
+
+def get_available_teams(user_name: str, password: str) -> list[Team] | None:
+    url = "https://api.holdsport.dk/v1/teams"
+    response = requests.get(
+        url, auth=(user_name, password), headers={"Accept": "application/json"}
+    )
+    return (
+        [Team(id=team.get("id"), name=team.get("name")) for team in response.json()]
         if response.status_code == 200
         else None
     )
