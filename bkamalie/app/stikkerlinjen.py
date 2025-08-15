@@ -6,13 +6,16 @@ from bkamalie.holdsport.api import (
     get_connection as get_holdsport_connection,
 )
 import polars as pl
-from bkamalie.app.utils import _suggest_fines, get_fines
-from bkamalie.database.utils import get_connection as get_db_connection
+from bkamalie.app.utils import _suggest_fines, get_fines, get_secret
+from bkamalie.database.utils import (
+    get_connection as get_db_connection,
+    get_db_config_from_secrets,
+)
 
 st.logo("bkamalie/graphics/bka_logo.png")
 
 holdsport_con = get_holdsport_connection(
-    st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
+    get_secret("holdsport_username"), get_secret("holdsport_password")
 )
 members = [
     {"id": member.id, "name": member.name, "role": member.role.to_string()}
@@ -24,9 +27,10 @@ df_members = pl.DataFrame(members)
 st.header("Stikkerlinjen", divider=True)
 
 holdsport_con = get_holdsport_connection(
-    st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
+    get_secret("holdsport_username"), get_secret("holdsport_password")
 )
-db_con = get_db_connection(st.secrets["db"])
+db_config = get_db_config_from_secrets()
+db_con = get_db_connection(db_config)
 df_fines = get_fines(db_con, ss.selected_team_id)
 df_recorded_fines = pl.read_database_uri(
     query=f"SELECT * FROM recorded_fines where team_id = {ss.selected_team_id}",

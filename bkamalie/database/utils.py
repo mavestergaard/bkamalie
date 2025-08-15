@@ -1,3 +1,4 @@
+from bkamalie.app.utils import get_secret
 import polars as pl
 from datetime import date, datetime
 
@@ -5,6 +6,17 @@ from datetime import date, datetime
 def get_connection(db_config: dict[str, str]) -> str:
     con_str = f"postgresql://{db_config['username']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['db_name']}"
     return con_str
+
+
+def get_db_config_from_secrets() -> dict[str, str]:
+    """Get database configuration from Streamlit secrets."""
+    return {
+        "username": get_secret("db_username"),
+        "password": get_secret("db_password"),
+        "host": get_secret("db_host"),
+        "port": get_secret("db_port"),
+        "db_name": get_secret("db_name"),
+    }
 
 
 def convert_wide_to_long(input_csv_path, fine_date: date):

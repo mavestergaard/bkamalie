@@ -17,17 +17,24 @@ from bkamalie.app.utils import (
     get_fines,
     fines_overview_detail_cols,
     fines_overview_show_cols,
+    get_secret,
 )
-from bkamalie.database.utils import get_connection as get_db_connection
+from bkamalie.database.utils import (
+    get_connection as get_db_connection,
+    get_db_config_from_secrets,
+)
 import polars.selectors as cs
 from streamlit import session_state as ss
 
 st.logo("bkamalie/graphics/bka_logo.png")
 
 holdsport_con = get_holdsport_connection(
-    st.secrets["holdsport"]["username"], st.secrets["holdsport"]["password"]
+    get_secret("holdsport_username"), get_secret("holdsport_password")
 )
-db_con = get_db_connection(st.secrets["db"])
+
+db_config = get_db_config_from_secrets()
+
+db_con = get_db_connection(db_config)
 
 members = [
     {"id": member.id, "name": member.name, "role": member.role.to_string()}
