@@ -117,15 +117,18 @@ def get_current_week_activities(con: str, team_id: int) -> list[Acvtivity]:
     response = requests.get(url)
     activities = []
     for activity in response.json():
-        players = []
-        for player in activity["activities_users"]:
-            players.append(
+        players = (
+            [
                 Player(
                     id=player["id"],
                     name=player["name"],
                     status=player["status"],
                 )
-            )
+                for player in activity["activities_users"]
+            ]
+            if "AFLYST" not in activity["name"]
+            else []
+        )
         activity_date = datetime.fromisoformat(activity["starttime"]).date()
         if start_date.isocalendar().week == activity_date.isocalendar().week:
             activities.append(
