@@ -128,6 +128,7 @@ def pay_fines(db_con, total_udestående, df_members):
         amount=amount_paid,
         payment_date=payment_date,
         payment_status=FineStatus.PENDING,
+        team_id=ss.selected_team_id,
     )
     if st.button("Bekræft betaling", type="primary"):
         try:
