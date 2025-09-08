@@ -8,6 +8,7 @@ from bkamalie.database.model import FineStatus, Payment, RecordedFine
 import streamlit as st
 from bkamalie.holdsport.api import (
     FINEBOX_ADMIN_MEMBER_ID,
+    FINEBOX_ADMIN_MEMBER_ID_WOMEN,
     get_members,
     get_connection as get_holdsport_connection,
 )
@@ -42,7 +43,11 @@ members = [
 ]
 df_members = pl.DataFrame(members)
 
-if st.session_state.current_user_id not in [FINEBOX_ADMIN_MEMBER_ID, 1412409]:
+if st.session_state.current_user_id not in [
+    FINEBOX_ADMIN_MEMBER_ID,
+    FINEBOX_ADMIN_MEMBER_ID_WOMEN,
+    1412409,
+]:
     st.warning("You do not have permission to access this page")
     st.stop()
 
