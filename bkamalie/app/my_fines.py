@@ -4,6 +4,7 @@ import streamlit as st
 from streamlit import session_state as ss
 from bkamalie.holdsport.api import (
     FINEBOX_ADMIN_MEMBER_ID,
+    FINEBOX_ADMIN_MEMBER_ID_WOMEN,
     get_members,
     get_connection as get_holdsport_connection,
 )
@@ -107,7 +108,10 @@ def pay_fines(db_con, total_udestående, df_members):
     )
     st.metric("Nuværende Udestående", value=total_udestående, border=True)
     disabled = (
-        False if ss.current_user_id in [FINEBOX_ADMIN_MEMBER_ID, 1412409] else True
+        False
+        if ss.current_user_id
+        in [FINEBOX_ADMIN_MEMBER_ID, FINEBOX_ADMIN_MEMBER_ID_WOMEN, 1412409]
+        else True
     )
     selected_member = st.multiselect(
         "Navn",
