@@ -1,5 +1,6 @@
 from bkamalie.app.utils import get_fines, get_secret
 from bkamalie.database.execute import insert_fines
+from bkamalie.database.model import FineCategory
 import streamlit as st
 import polars as pl
 from bkamalie.database.utils import (
@@ -52,3 +53,36 @@ def upload_new_fines(db_con) -> None:
 if st.button("Upload New Fines", type="primary"):
     # add some validation here
     upload_new_fines(db_con)
+
+
+@st.dialog("Upload New Fines")
+def create_new_fine(db_con) -> None:
+    fine_name = st.text_input("Bøde Navn")
+    fixed_amount = st.number_input("Fast Beløb", value=0)
+    variable_amount = st.number_input("Variabelt Beløb", value=0)
+    description = st.text_area("Beskrivelse", value=None)
+    category = st.selectbox("Kategori", options=FineCategory)
+    df_new_fines = pl.DataFrame(
+        [
+            {
+                "name": fine_name,
+                "fixed_amount": fixed_amount,
+                "variable_amount": variable_amount,
+                "holdbox_amount": 0,
+                "description": description,
+                "category": category,
+                "team_id": ss.selected_team_id,
+            }
+        ]
+    )
+    if st.button("Upload nye bøder", type="primary"):
+        try:
+            insert_fines(db_con, df_new_fines)
+            st.success("Nye bøder uploaded", icon="✅")
+            st.rerun()
+        except Exception as e:
+            raise e
+
+
+if st.button("Create New Fine", type="primary"):
+    create_new_fine(db_con)

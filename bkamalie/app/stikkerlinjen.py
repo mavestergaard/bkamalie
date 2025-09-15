@@ -77,6 +77,12 @@ def suggest_fines(db_con, df_members, df_fines):
     number_of_holdboxe = col3.number_input("Antal", value=0, key="holdbox")
 
     comment = st.text_input("Tilføj kommentar", None)
+    if not selected_members:
+        st.error("Vælg mindst et medlem")
+        st.stop()
+    if not selected_fine:
+        st.error("Vælg en bøde")
+        st.stop()
     if st.button("Suggest fine"):
         try:
             _suggest_fines(

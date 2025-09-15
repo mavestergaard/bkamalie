@@ -87,8 +87,10 @@ df_fine_overview = (
     )
 )
 
-
-df_fines_pending = df_fine_overview.filter(fine_status="Pending")
+# Filter added to hide pending fines with no member assigned. This happens if a member withdraw from the team but has pending fines.
+df_fines_pending = df_fine_overview.filter(
+    pl.col("name_member").is_not_null(), pl.col("fine_status") == "Pending"
+)
 
 
 @st.dialog("Opdater Bøder", width="large")
