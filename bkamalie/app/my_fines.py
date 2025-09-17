@@ -9,7 +9,7 @@ from bkamalie.holdsport.api import (
     get_connection as get_holdsport_connection,
 )
 import polars as pl
-from bkamalie.app.utils import get_fines, get_secret
+from bkamalie.app.utils import get_fines, get_options, get_secret
 from bkamalie.database.utils import (
     get_connection as get_db_connection,
     get_db_config_from_secrets,
@@ -20,7 +20,7 @@ from bkamalie.css_styles.payment_card import (
     get_payment_card_html,
 )
 from bkamalie.app.model import DisplayPayment
-
+import plotly.express as px
 
 st.logo("bkamalie/graphics/bka_logo.png")
 
@@ -39,6 +39,18 @@ df_members = pl.DataFrame(members)
 
 st.header("Mine Bøder", divider=True)
 
+selected_member = st.selectbox(
+    "Name Filter",
+    get_options(df_members, "name"),
+    index=None,
+)
+
+selected_member_id = (
+    df_members.filter(name=selected_member).item(0, "id")
+    if selected_member
+    else ss.current_user_id
+)
+
 df_fines = get_fines(db_con, ss.selected_team_id)
 df_recorded_fines = pl.read_database_uri(
     query=f"SELECT * FROM recorded_fines where team_id = {ss.selected_team_id}",
@@ -49,7 +61,7 @@ df_payments = (
         query=f"SELECT * FROM payments where team_id = {ss.selected_team_id}",
         uri=db_con,
     )
-    .filter(member_id=ss.current_user_id)
+    .filter(member_id=selected_member_id)
     .join(df_members, left_on="member_id", right_on="id", how="left", suffix="_member")
     .rename({"name": "member_name"})
 )
@@ -73,7 +85,7 @@ df_fine_overview = (
         suffix="_stikker",
     )
     .filter(
-        fined_member_id=ss.current_user_id,
+        fined_member_id=selected_member_id,
     )
 )
 
@@ -153,6 +165,27 @@ with st.expander("Betalingshistorik", expanded=False):
         payment = DisplayPayment(**row)
         payment_html = get_payment_card_html(payment)
         st.markdown(payment_html, unsafe_allow_html=True)
+
+with st.expander("Bøde Statistik", expanded=False):
+    amount_or_count = st.pills(
+        "", ["Beløb", "Antal"], default="Beløb", selection_mode="single"
+    )
+    if amount_or_count == "Beløb":
+        y_axis = "total_fine"
+        title = "Total Bøde Beløb"
+    else:
+        y_axis = None
+        title = "Antal Bøder"
+    fig = px.histogram(
+        df_fine_overview,
+        x="name",
+        y=y_axis,
+        title=title,
+        color_discrete_sequence=["#560E29"],
+        histfunc="sum",
+        text_auto=True,
+    ).update_xaxes(categoryorder="total descending")
+    st.plotly_chart(fig)
 
 
 st.markdown(
