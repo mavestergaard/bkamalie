@@ -167,3 +167,11 @@ def get_secret(secret_name: str) -> Any:
         return st.secrets[st_secret_type][st_secret_name]
     except StreamlitSecretNotFoundError:
         return os.getenv(secret_name, None)
+
+
+@st.cache_data(max_entries=1000)
+def get_options(
+    df: pl.DataFrame,
+    option_col: str,
+) -> list[str]:
+    return df[option_col].unique(maintain_order=True).to_list()

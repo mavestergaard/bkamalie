@@ -6,7 +6,7 @@ from bkamalie.holdsport.api import (
     get_connection as get_holdsport_connection,
 )
 import polars as pl
-from bkamalie.app.utils import _suggest_fines, get_fines, get_secret
+from bkamalie.app.utils import _suggest_fines, get_fines, get_options, get_secret
 from bkamalie.database.utils import (
     get_connection as get_db_connection,
     get_db_config_from_secrets,
@@ -199,6 +199,13 @@ st.markdown("<div class='card-container'>", unsafe_allow_html=True)
 selection = st.pills("Fine Status", FineStatus, selection_mode="multi")
 if selection:
     df_fine_overview = df_fine_overview.filter(pl.col("fine_status").is_in(selection))
+selected_member = st.selectbox(
+    "Name Filter",
+    get_options(df_members, "name"),
+    index=None,
+)
+if selected_member:
+    df_fine_overview = df_fine_overview.filter(pl.col("name_member") == selected_member)
 
 if len(df_fine_overview) == 0:
     st.warning("No fines found for current selection.")

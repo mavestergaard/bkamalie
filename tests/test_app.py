@@ -1,4 +1,4 @@
-from bkamalie.app.utils import _suggest_fines
+from bkamalie.app.utils import _suggest_fines, get_options
 import polars as pl
 
 
@@ -22,3 +22,8 @@ def test_suggest_fines(db_mock, df_members, df_fines):
         query="SELECT * FROM recorded_fines where team_id=999", uri=db_con
     )
     assert len(df) == 2
+
+
+def test_get_options(df_members):
+    options = get_options(df_members, "name")
+    assert options == ["Anders And", "Mickey Mouse", "Donald Duck", "Goofy"]
